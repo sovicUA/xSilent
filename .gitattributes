@@ -1,0 +1,42 @@
+# Нормалізація закінчень рядків: у репозиторії завжди LF, у робочій копії —
+# рідні для ОС (на Windows Git розгорне у CRLF при потребі).
+* text=auto eol=lf
+
+# Скрипти, залежні від закінчень рядків
+*.bat        text eol=crlf
+*.cmd        text eol=crlf
+*.ps1        text eol=crlf
+*.sh         text eol=lf
+gradlew      text eol=lf
+gradlew.bat  text eol=crlf
+
+# Явно текстові формати проєкту
+*.dart       text
+*.yaml       text
+*.yml        text
+*.json       text
+*.md         text
+*.gradle     text
+*.kts        text
+*.xml        text
+*.pbxproj    text
+*.plist      text
+*.svg        text
+
+# Бінарні файли — Git не чіпає й показує як binary у diff
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.gif    binary
+*.ico    binary
+*.webp   binary
+*.ttf    binary
+*.otf    binary
+*.woff   binary
+*.woff2  binary
+*.jar    binary
+*.keystore binary
+*.jks    binary
+*.p12    binary
+*.apk    binary
+*.aab    binary
