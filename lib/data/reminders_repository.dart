@@ -3,14 +3,16 @@ import 'package:drift/drift.dart';
 import '../database/database.dart';
 import '../models/weekdays.dart';
 import '../services/notification_service.dart';
+import '../services/speech_alarm.dart';
 
 /// Єдина точка доступу до нагадувань: усі зміни в БД одразу
-/// синхронізуються з запланованими сповіщеннями.
+/// синхронізуються з запланованими сповіщеннями та alarm-ами озвучення.
 class RemindersRepository {
-  RemindersRepository(this._db, this._notifications);
+  RemindersRepository(this._db, this._notifications, this._alarms);
 
   final AppDatabase _db;
   final NotificationService _notifications;
+  final SpeechAlarmScheduler _alarms;
 
   Stream<List<Reminder>> watchAll() {
     return (_db.select(_db.reminders)
@@ -53,7 +55,9 @@ class RemindersRepository {
             .write(const RemindersCompanion(body: Value(_builtInBody)));
       }
     }
-    await _notifications.syncAll(await _db.select(_db.reminders).get());
+    final all = await _db.select(_db.reminders).get();
+    await _notifications.syncAll(all);
+    await _alarms.armAll(all);
   }
 
   Future<Reminder> create({
@@ -62,6 +66,7 @@ class RemindersRepository {
     required int hour,
     required int minute,
     required int weekdayMask,
+    bool speakAloud = true,
     bool isBuiltIn = false,
   }) async {
     final reminder = await _db.into(_db.reminders).insertReturning(
@@ -71,10 +76,12 @@ class RemindersRepository {
             hour: hour,
             minute: minute,
             weekdayMask: Value(weekdayMask),
+            speakAloud: Value(speakAloud),
             isBuiltIn: Value(isBuiltIn),
           ),
         );
     await _notifications.sync(reminder);
+    await _alarms.arm(reminder);
     return reminder;
   }
 
@@ -85,6 +92,7 @@ class RemindersRepository {
     required int hour,
     required int minute,
     required int weekdayMask,
+    required bool speakAloud,
   }) async {
     final updated = reminder.copyWith(
       title: title,
@@ -92,9 +100,11 @@ class RemindersRepository {
       hour: hour,
       minute: minute,
       weekdayMask: weekdayMask,
+      speakAloud: speakAloud,
     );
     await _db.update(_db.reminders).replace(updated);
     await _notifications.sync(updated);
+    await _alarms.arm(updated);
   }
 
   /// Порожній рядок → `null`, щоб у сповіщенні не було порожнього тіла.
@@ -107,11 +117,13 @@ class RemindersRepository {
     final updated = reminder.copyWith(enabled: enabled);
     await _db.update(_db.reminders).replace(updated);
     await _notifications.sync(updated);
+    await _alarms.arm(updated);
   }
 
   Future<void> delete(Reminder reminder) async {
     await (_db.delete(_db.reminders)..where((t) => t.id.equals(reminder.id)))
         .go();
     await _notifications.cancel(reminder.id);
+    await _alarms.disarm(reminder.id);
   }
 }

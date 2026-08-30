@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ресурси, на які посилаються лише за іменем із Dart-коду
+     (звук каналу та іконка сповіщення) — shrinker вважає їх невикористаними. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@raw/gong,@drawable/ic_stat_xsilent" />

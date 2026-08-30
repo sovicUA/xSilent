@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -22,6 +24,13 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
   late TimeOfDay _time;
   late int _weekdayMask;
 
+  /// Бажання користувача озвучувати. Діє лише коли є опис ([_hasBody]).
+  late bool _speakAloud;
+
+  /// Чи користувач вручну перемикав прапорець — тоді не перевизначаємо його
+  /// при введенні опису.
+  late bool _speakAloudTouched;
+
   @override
   void initState() {
     super.initState();
@@ -34,6 +43,19 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
         ? const TimeOfDay(hour: 9, minute: 0)
         : TimeOfDay(hour: reminder.hour, minute: reminder.minute);
     _weekdayMask = reminder?.weekdayMask ?? Weekdays.everyDay;
+    _speakAloud = reminder?.speakAloud ?? true;
+    _speakAloudTouched = reminder != null;
+  }
+
+  bool get _hasBody => _bodyController.text.trim().isNotEmpty;
+
+  /// Фактичний стан прапорця з урахуванням наявності опису.
+  bool get _speakAloudEffective => _hasBody && _speakAloud;
+
+  void _onBodyChanged(String _) {
+    setState(() {
+      if (!_speakAloudTouched) _speakAloud = _hasBody;
+    });
   }
 
   @override
@@ -48,6 +70,10 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
     if (picked != null) {
       setState(() => _time = picked);
     }
+  }
+
+  Future<void> _preview() async {
+    await ref.read(ttsServiceProvider).speak(_bodyController.text.trim());
   }
 
   bool get _canSave =>
@@ -66,6 +92,7 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
         hour: _time.hour,
         minute: _time.minute,
         weekdayMask: _weekdayMask,
+        speakAloud: _speakAloudEffective,
       );
     } else {
       await repository.update(
@@ -75,6 +102,7 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
         hour: _time.hour,
         minute: _time.minute,
         weekdayMask: _weekdayMask,
+        speakAloud: _speakAloudEffective,
       );
     }
     if (mounted) Navigator.of(context).pop();
@@ -121,16 +149,40 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
           const SizedBox(height: 16),
           TextField(
             controller: _bodyController,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Текст сповіщення',
               helperText: 'Необовʼязково — показується під назвою у шторці',
-              border: OutlineInputBorder(),
+              border: const OutlineInputBorder(),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.volume_up_outlined),
+                tooltip: 'Прослухати',
+                onPressed: _hasBody ? () => unawaited(_preview()) : null,
+              ),
             ),
             textCapitalization: TextCapitalization.sentences,
             minLines: 1,
             maxLines: 3,
+            onChanged: _onBodyChanged,
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 8),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            secondary: const Icon(Icons.record_voice_over_outlined),
+            title: const Text('Озвучити сповіщення'),
+            subtitle: Text(
+              _hasBody
+                  ? 'Проговорити текст уголос при спрацюванні (TTS)'
+                  : 'Додайте текст сповіщення, щоб увімкнути',
+            ),
+            value: _speakAloudEffective,
+            onChanged: _hasBody
+                ? (value) => setState(() {
+                      _speakAloud = value;
+                      _speakAloudTouched = true;
+                    })
+                : null,
+          ),
+          const SizedBox(height: 16),
           Text('Повторювати', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
           Wrap(

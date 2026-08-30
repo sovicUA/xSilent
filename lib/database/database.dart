@@ -28,6 +28,9 @@ class Reminders extends Table {
 
   BoolColumn get enabled => boolean().withDefault(const Constant(true))();
 
+  /// Чи проговорювати текст сповіщення вголос (TTS) при спрацюванні.
+  BoolColumn get speakAloud => boolean().withDefault(const Constant(true))();
+
   BoolColumn get isBuiltIn => boolean().withDefault(const Constant(false))();
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
@@ -39,13 +42,16 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'xsilent'));
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onUpgrade: (m, from, to) async {
           if (from < 2) {
             await m.addColumn(reminders, reminders.body);
+          }
+          if (from < 3) {
+            await m.addColumn(reminders, reminders.speakAloud);
           }
         },
       );

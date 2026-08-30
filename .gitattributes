@@ -34,6 +34,11 @@ gradlew.bat  text eol=crlf
 *.otf    binary
 *.woff   binary
 *.woff2  binary
+*.wav    binary
+*.mp3    binary
+*.ogg    binary
+*.caf    binary
+*.aiff   binary
 *.jar    binary
 *.keystore binary
 *.jks    binary
