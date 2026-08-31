@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../database/database.dart';
 import '../models/weekdays.dart';
 import '../providers.dart';
+import '../widgets/candle_flame.dart';
 import 'edit_reminder_screen.dart';
 import 'settings_screen.dart';
 
@@ -56,17 +57,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text('Помилка: $error')),
         data: (items) {
-          if (items.isEmpty) {
-            return const _EmptyState();
-          }
-          return ListView.separated(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: items.length,
-            itemBuilder: (context, index) => _ReminderTile(
-              reminder: items[index],
-              onTap: () => _openEditor(items[index]),
-            ),
-            separatorBuilder: (_, _) => const Divider(height: 1),
+          if (items.isEmpty) return const _EmptyState();
+
+          // Вбудоване «Хвилина мовчання» завжди перше; далі — власні, за часом
+          // (стрім уже відсортований по годині/хвилині).
+          final builtIn = items.where((r) => r.isBuiltIn).toList();
+          final custom = items.where((r) => !r.isBuiltIn).toList();
+
+          return ListView(
+            padding: const EdgeInsets.only(top: 8, bottom: 96),
+            children: [
+              for (final reminder in builtIn)
+                _BuiltInTile(
+                  reminder: reminder,
+                  onTap: () => _openEditor(reminder),
+                ),
+              if (custom.isNotEmpty)
+                const _SectionSeparator(label: 'Нагадування'),
+              for (var i = 0; i < custom.length; i++) ...[
+                if (i > 0)
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                _ReminderTile(
+                  reminder: custom[i],
+                  onTap: () => _openEditor(custom[i]),
+                ),
+              ],
+            ],
           );
         },
       ),
@@ -74,6 +90,87 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         onPressed: _openEditor,
         icon: const Icon(Icons.add),
         label: const Text('Нагадування'),
+      ),
+    );
+  }
+}
+
+/// Тонка лінія з підписом розділу посередині: `──── Нагадування ────`.
+class _SectionSeparator extends StatelessWidget {
+  const _SectionSeparator({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final line = Container(height: 1, color: theme.colorScheme.outlineVariant);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+      child: Row(
+        children: [
+          Expanded(child: line),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              label.toUpperCase(),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                letterSpacing: 1.8,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(child: line),
+        ],
+      ),
+    );
+  }
+}
+
+/// Акцентована плитка вбудованого нагадування «Хвилина мовчання».
+class _BuiltInTile extends ConsumerWidget {
+  const _BuiltInTile({required this.reminder, required this.onTap});
+
+  final Reminder reminder;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final repository = ref.read(remindersRepositoryProvider);
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final time = TimeOfDay(hour: reminder.hour, minute: reminder.minute);
+    final on = cs.onPrimaryContainer;
+
+    return Card(
+      elevation: 0,
+      color: cs.primaryContainer,
+      margin: const EdgeInsets.fromLTRB(10, 4, 10, 4),
+      shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        onTap: onTap,
+        leading: SizedBox(
+          width: 26,
+          height: 30,
+          child: CandleFlame(color: on),
+        ),
+        title: Text(
+          time.format(context),
+          style: theme.textTheme.headlineSmall?.copyWith(
+            color: reminder.enabled ? on : on.withValues(alpha: 0.4),
+          ),
+        ),
+        subtitle: Text(
+          '${reminder.title} · ${Weekdays.describe(reminder.weekdayMask)}',
+          style: TextStyle(color: on.withValues(alpha: 0.8)),
+        ),
+        trailing: Switch(
+          value: reminder.enabled,
+          onChanged: (value) => repository.setEnabled(reminder, value),
+        ),
       ),
     );
   }
@@ -93,9 +190,7 @@ class _ReminderTile extends ConsumerWidget {
 
     return Dismissible(
       key: ValueKey(reminder.id),
-      direction: reminder.isBuiltIn
-          ? DismissDirection.none
-          : DismissDirection.endToStart,
+      direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 24),

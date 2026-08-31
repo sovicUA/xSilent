@@ -1,0 +1,80 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@500&display=swap">
+<style>
+  :root {
+    --l-surface:#faf9fd; --l-on:#1a1c1e; --l-on-var:#43474e; --l-outline:#c3c7cf;
+    --l-primary:#38608f; --l-primary-container:#d3e3ff; --l-on-primary-container:#001d36;
+    --l-accent-tile:#dce8fb; --l-track-on:#38608f; --l-track-off:#74777f;
+    --d-surface:#1a1c20; --d-on:#e2e2e6; --d-on-var:#c3c7cf; --d-outline:#43474e;
+    --d-primary:#a1c9fd; --d-primary-container:#1d4b73; --d-on-primary-container:#d2e4ff;
+    --d-accent-tile:#223449; --d-track-on:#a1c9fd; --d-track-off:#8e9199;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{
+    background:#f3f4f6;
+    font-family:"Roboto",system-ui,sans-serif;
+    width:1160px;height:720px;
+    display:flex;align-items:center;justify-content:center;gap:64px;
+  }
+  .phone{border-radius:34px;padding:9px;background:var(--frame);
+    box-shadow:0 26px 60px -22px rgba(20,30,45,.42),0 0 0 1px rgba(0,0,0,.04);}
+  .screen{border-radius:26px;overflow:hidden;background:var(--surface);color:var(--on);
+    font-size:15px;width:340px;position:relative;}
+  .phone.light{--frame:#dfe1e5;--surface:var(--l-surface);--on:var(--l-on);--on-var:var(--l-on-var);
+    --outline:var(--l-outline);--primary:var(--l-primary);--pc:var(--l-primary-container);
+    --opc:var(--l-on-primary-container);--accent-tile:var(--l-accent-tile);
+    --track-on:var(--l-track-on);--track-off:var(--l-track-off);}
+  .phone.dark{--frame:#303338;--surface:var(--d-surface);--on:var(--d-on);--on-var:var(--d-on-var);
+    --outline:var(--d-outline);--primary:var(--d-primary);--pc:var(--d-primary-container);
+    --opc:var(--d-on-primary-container);--accent-tile:var(--d-accent-tile);
+    --track-on:var(--d-track-on);--track-off:var(--d-track-off);}
+  .appbar{display:flex;align-items:center;justify-content:space-between;padding:18px 10px 18px 18px;}
+  .appbar h2{font-size:1.1rem;font-weight:500;margin:0;}
+  .gear svg{width:22px;height:22px;stroke:var(--on-var);fill:none;stroke-width:1.6;}
+  .list{padding:4px 0 96px;}
+  .tile{display:grid;grid-template-columns:1fr auto;align-items:center;column-gap:12px;padding:13px 18px;}
+  .lead{display:flex;align-items:center;gap:12px;min-width:0;}
+  .flame{width:23px;height:27px;flex:none;}
+  .time{font-family:"Roboto Mono",monospace;font-size:1.6rem;font-weight:500;line-height:1.1;font-variant-numeric:tabular-nums;}
+  .desc{font-size:.84rem;color:var(--on-var);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tile.off .time,.tile.off .desc{color:color-mix(in srgb,var(--on-var) 55%,transparent);}
+  .tile.builtin{background:var(--accent-tile);color:var(--opc);margin:6px 12px 4px;border-radius:16px;padding:15px 18px;}
+  .tile.builtin .time{color:var(--opc);}
+  .tile.builtin .desc{color:color-mix(in srgb,var(--opc) 78%,transparent);}
+  .divider{border:0;height:1px;background:var(--outline);opacity:.5;margin:0 18px;}
+  .section{display:flex;align-items:center;gap:12px;padding:20px 22px 8px;}
+  .section::before,.section::after{content:"";flex:1;height:1px;background:var(--outline);opacity:.55;}
+  .section span{font-size:.72rem;text-transform:uppercase;letter-spacing:.18em;color:var(--on-var);font-weight:500;}
+  .sw{width:46px;height:27px;border-radius:14px;flex:none;position:relative;background:var(--track-off);}
+  .sw::after{content:"";position:absolute;width:19px;height:19px;border-radius:50%;background:#fff;top:4px;left:4px;}
+  .sw.on{background:var(--track-on);}
+  .sw.on::after{left:23px;}
+  .phone.dark .sw.on::after{background:var(--surface);}
+  .fab{position:absolute;right:18px;bottom:18px;display:inline-flex;align-items:center;gap:8px;
+    background:var(--pc);color:var(--opc);padding:15px 21px;border-radius:16px;font-weight:500;font-size:.92rem;
+    box-shadow:0 8px 18px -7px rgba(0,0,0,.35);}
+  .fab svg{width:20px;height:20px;stroke:currentColor;stroke-width:2;fill:none;}
+</style></head><body>
+<script>
+  function phone(cls, offRun){return `
+  <div class="phone ${cls}"><div class="screen">
+    <div class="appbar"><h2>Хвилина мовчання</h2>
+      <span class="gear"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.5 5.5l2 2M16.5 16.5l2 2M18.5 5.5l-2 2M7.5 16.5l-2 2"/></svg></span></div>
+    <div class="list">
+      <div class="tile builtin"><div class="lead">
+        <svg class="flame" viewBox="0 0 22 26"><path d="M11 1c1.5 4-3.5 6-3.5 11a3.5 3.5 0 0 0 7 0c0-2-1-3-1-3 .3 2-1.2 3-1.2 3 .5-3-1.3-4-1.3-8Z" fill="currentColor" opacity=".92"/><path d="M6 15a5 5 0 0 0 10 0c0-1-.4-2-.4-2a3.4 3.4 0 0 1-6.6 0S6 13.7 6 15Z" fill="currentColor" opacity=".18"/></svg>
+        <div><div class="time">09:00</div><div class="desc">Хвилина мовчання · Щодня</div></div></div>
+        <span class="sw on"></span></div>
+      <div class="section"><span>Нагадування</span></div>
+      <div class="tile ${offRun ? 'off' : ''}"><div class="lead"><div><div class="time">07:15</div><div class="desc">Пробіжка · Пн, Ср, Пт</div></div></div><span class="sw ${offRun ? '' : 'on'}"></span></div>
+      <hr class="divider">
+      <div class="tile"><div class="lead"><div><div class="time">12:30</div><div class="desc">Прийняти ліки · По буднях</div></div></div><span class="sw on"></span></div>
+      <hr class="divider">
+      <div class="tile"><div class="lead"><div><div class="time">20:00</div><div class="desc">Вечірня медитація · Щодня</div></div></div><span class="sw on"></span></div>
+    </div>
+    <span class="fab"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Нагадування</span>
+  </div></div>`;}
+  document.body.insertAdjacentHTML('afterbegin', phone('light', false) + phone('dark', true));
+</script>
+</body></html>
