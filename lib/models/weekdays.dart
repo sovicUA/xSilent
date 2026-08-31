@@ -1,3 +1,5 @@
+import '../l10n/app_localizations.dart';
+
 /// Дні тижня зберігаються як бітова маска.
 ///
 /// Біт `weekday - 1` відповідає дню за нумерацією [DateTime.weekday]
@@ -5,17 +7,6 @@
 /// [Weekdays.everyDay] (== 127) — щодня.
 abstract final class Weekdays {
   static const int everyDay = 127;
-
-  /// Короткі підписи Пн…Нд за індексом `weekday - 1`.
-  static const List<String> shortLabels = [
-    'Пн',
-    'Вт',
-    'Ср',
-    'Чт',
-    'Пт',
-    'Сб',
-    'Нд',
-  ];
 
   static int _bit(int weekday) => 1 << (weekday - 1);
 
@@ -29,17 +20,32 @@ abstract final class Weekdays {
           if (contains(mask, weekday)) weekday,
       ];
 
+  /// Короткий підпис дня (`weekday` 1..7).
+  static String shortLabel(L10n l10n, int weekday) => switch (weekday) {
+        1 => l10n.weekdayShort1,
+        2 => l10n.weekdayShort2,
+        3 => l10n.weekdayShort3,
+        4 => l10n.weekdayShort4,
+        5 => l10n.weekdayShort5,
+        6 => l10n.weekdayShort6,
+        _ => l10n.weekdayShort7,
+      };
+
   /// Людиночитний опис набору днів для списку нагадувань.
-  static String describe(int mask) {
+  static String describe(int mask, L10n l10n) {
     final days = toWeekdays(mask);
-    if (days.isEmpty) return 'Не повторюється';
-    if (days.length == 7) return 'Щодня';
-    if (days.length == 5 && !contains(mask, DateTime.saturday) && !contains(mask, DateTime.sunday)) {
-      return 'По буднях';
+    if (days.isEmpty) return l10n.repeatNever;
+    if (days.length == 7) return l10n.repeatEveryDay;
+    if (days.length == 5 &&
+        !contains(mask, DateTime.saturday) &&
+        !contains(mask, DateTime.sunday)) {
+      return l10n.repeatWeekdays;
     }
-    if (days.length == 2 && contains(mask, DateTime.saturday) && contains(mask, DateTime.sunday)) {
-      return 'На вихідних';
+    if (days.length == 2 &&
+        contains(mask, DateTime.saturday) &&
+        contains(mask, DateTime.sunday)) {
+      return l10n.repeatWeekend;
     }
-    return days.map((d) => shortLabels[d - 1]).join(', ');
+    return days.map((d) => shortLabel(l10n, d)).join(', ');
   }
 }

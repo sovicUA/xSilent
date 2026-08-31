@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../database/database.dart';
+import '../l10n/app_localizations.dart';
 import '../models/weekdays.dart';
 import '../providers.dart';
 import '../services/announcement_service.dart';
@@ -32,14 +33,13 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
   late double _volume;
 
   bool _previewBusy = false;
+  bool _titleDefaultApplied = false;
 
   @override
   void initState() {
     super.initState();
     final reminder = widget.reminder;
-    _titleController = TextEditingController(
-      text: reminder?.title ?? 'Сповіщення',
-    );
+    _titleController = TextEditingController(text: reminder?.title ?? '');
     _bodyController = TextEditingController(text: reminder?.body ?? '');
     _time = reminder == null
         ? const TimeOfDay(hour: 9, minute: 0)
@@ -48,6 +48,15 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
     _speakAloud = reminder?.speakAloud ?? true;
     _speakAloudTouched = reminder != null;
     _volume = reminder?.announcementVolume ?? 1.0;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (widget.isNew && !_titleDefaultApplied) {
+      _titleController.text = L10n.of(context).newReminderDefaultName;
+      _titleDefaultApplied = true;
+    }
   }
 
   bool get _hasBody => _bodyController.text.trim().isNotEmpty;
@@ -77,6 +86,7 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
   Future<void> _preview() async {
     if (_previewBusy || !_hasBody) return;
     setState(() => _previewBusy = true);
+    final l10n = L10n.of(context);
     try {
       final gong = (widget.reminder?.isBuiltIn ?? false)
           ? Gong.main
@@ -88,15 +98,12 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
           );
       if (!mounted) return;
       if (result.duration > AnnouncementService.maxLength) {
-        _showSnack(
-          'Озвучення триває ${result.duration.inSeconds} с. У сповіщенні воно '
-          'буде обрізане до ~30 с — скоротіть текст.',
-        );
+        _showSnack(l10n.previewTooLong(result.duration.inSeconds));
       }
       await _player.stop();
       await _player.play(DeviceFileSource(result.localPath));
     } on AnnouncementException catch (e) {
-      if (mounted) _showSnack('Не вдалося озвучити: ${e.message}');
+      if (mounted) _showSnack(l10n.previewFailed(e.message));
     } finally {
       if (mounted) setState(() => _previewBusy = false);
     }
@@ -144,15 +151,16 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = L10n.of(context);
     final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.isNew ? 'Нове нагадування' : 'Редагувати'),
+        title: Text(widget.isNew ? l10n.editorNewTitle : l10n.editorEditTitle),
         actions: [
           TextButton(
             onPressed: _canSave ? _save : null,
-            child: const Text('Зберегти'),
+            child: Text(l10n.save),
           ),
         ],
       ),
@@ -162,7 +170,7 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
           Card(
             child: ListTile(
               leading: const Icon(Icons.schedule),
-              title: const Text('Час'),
+              title: Text(l10n.fieldTime),
               trailing: Text(
                 _time.format(context),
                 style: theme.textTheme.headlineSmall,
@@ -173,9 +181,9 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
           const SizedBox(height: 16),
           TextField(
             controller: _titleController,
-            decoration: const InputDecoration(
-              labelText: 'Назва',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.fieldName,
+              border: const OutlineInputBorder(),
             ),
             textCapitalization: TextCapitalization.sentences,
             onChanged: (_) => setState(() {}),
@@ -184,8 +192,8 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
           TextField(
             controller: _bodyController,
             decoration: InputDecoration(
-              labelText: 'Текст сповіщення',
-              helperText: 'Необовʼязково — показується під назвою у шторці',
+              labelText: l10n.fieldBody,
+              helperText: l10n.fieldBodyHelper,
               border: const OutlineInputBorder(),
               suffixIcon: IconButton(
                 icon: _previewBusy
@@ -195,7 +203,7 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.volume_up_outlined),
-                tooltip: 'Прослухати',
+                tooltip: l10n.previewTooltip,
                 onPressed: _hasBody ? () => unawaited(_preview()) : null,
               ),
             ),
@@ -208,11 +216,9 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             secondary: const Icon(Icons.record_voice_over_outlined),
-            title: const Text('Озвучити сповіщення'),
+            title: Text(l10n.speakSwitchTitle),
             subtitle: Text(
-              _hasBody
-                  ? 'Програти «гонг + текст» при спрацюванні'
-                  : 'Додайте текст сповіщення, щоб увімкнути',
+              _hasBody ? l10n.speakSwitchOnHint : l10n.speakSwitchOffHint,
             ),
             value: _speakAloudEffective,
             onChanged: _hasBody
@@ -240,20 +246,20 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
             Padding(
               padding: const EdgeInsets.only(left: 4, bottom: 4),
               child: Text(
-                'Гучність озвучення: ${(_volume * 100).round()}%',
+                l10n.volumeLabel((_volume * 100).round()),
                 style: theme.textTheme.bodySmall,
               ),
             ),
           ],
           const SizedBox(height: 16),
-          Text('Повторювати', style: theme.textTheme.titleMedium),
+          Text(l10n.repeatTitle, style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             children: [
               for (var weekday = 1; weekday <= 7; weekday++)
                 FilterChip(
-                  label: Text(Weekdays.shortLabels[weekday - 1]),
+                  label: Text(Weekdays.shortLabel(l10n, weekday)),
                   selected: Weekdays.contains(_weekdayMask, weekday),
                   onSelected: (_) => setState(() {
                     _weekdayMask = Weekdays.toggle(_weekdayMask, weekday);
@@ -267,11 +273,11 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
               TextButton(
                 onPressed: () =>
                     setState(() => _weekdayMask = Weekdays.everyDay),
-                child: const Text('Щодня'),
+                child: Text(l10n.repeatEveryDay),
               ),
               TextButton(
                 onPressed: () => setState(() => _weekdayMask = 0x1F),
-                child: const Text('По буднях'),
+                child: Text(l10n.repeatWeekdays),
               ),
             ],
           ),

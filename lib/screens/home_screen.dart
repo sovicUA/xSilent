@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../database/database.dart';
+import '../l10n/app_localizations.dart';
 import '../models/weekdays.dart';
 import '../providers.dart';
 import '../widgets/candle_flame.dart';
@@ -40,27 +41,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = L10n.of(context);
     final reminders = ref.watch(remindersProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Хвилина мовчання'),
+        title: Text(l10n.appTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            tooltip: 'Налаштування',
+            tooltip: l10n.settingsTooltip,
             onPressed: _openSettings,
           ),
         ],
       ),
       body: reminders.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Помилка: $error')),
+        error: (error, _) =>
+            Center(child: Text(l10n.errorPrefix(error.toString()))),
         data: (items) {
           if (items.isEmpty) return const _EmptyState();
 
-          // Вбудоване «Хвилина мовчання» завжди перше; далі — власні, за часом
-          // (стрім уже відсортований по годині/хвилині).
+          // Вбудоване завжди перше; далі — власні, за часом (стрім відсортований).
           final builtIn = items.where((r) => r.isBuiltIn).toList();
           final custom = items.where((r) => !r.isBuiltIn).toList();
 
@@ -73,7 +75,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   onTap: () => _openEditor(reminder),
                 ),
               if (custom.isNotEmpty)
-                const _SectionSeparator(label: 'Нагадування'),
+                _SectionSeparator(label: l10n.remindersSection),
               for (var i = 0; i < custom.length; i++) ...[
                 if (i > 0)
                   const Divider(height: 1, indent: 16, endIndent: 16),
@@ -89,13 +91,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openEditor,
         icon: const Icon(Icons.add),
-        label: const Text('Нагадування'),
+        label: Text(l10n.fabNewReminder),
       ),
     );
   }
 }
 
-/// Тонка лінія з підписом розділу посередині: `──── Нагадування ────`.
+/// Тонка лінія з підписом розділу посередині.
 class _SectionSeparator extends StatelessWidget {
   const _SectionSeparator({required this.label});
 
@@ -137,6 +139,7 @@ class _BuiltInTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = L10n.of(context);
     final repository = ref.read(remindersRepositoryProvider);
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
@@ -147,8 +150,7 @@ class _BuiltInTile extends ConsumerWidget {
       elevation: 0,
       color: cs.primaryContainer,
       margin: const EdgeInsets.fromLTRB(10, 4, 10, 4),
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       clipBehavior: Clip.antiAlias,
       child: ListTile(
         onTap: onTap,
@@ -164,7 +166,7 @@ class _BuiltInTile extends ConsumerWidget {
           ),
         ),
         subtitle: Text(
-          '${reminder.title} · ${Weekdays.describe(reminder.weekdayMask)}',
+          '${reminder.title} · ${Weekdays.describe(reminder.weekdayMask, l10n)}',
           style: TextStyle(color: on.withValues(alpha: 0.8)),
         ),
         trailing: Switch(
@@ -184,6 +186,7 @@ class _ReminderTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = L10n.of(context);
     final repository = ref.read(remindersRepositoryProvider);
     final time = TimeOfDay(hour: reminder.hour, minute: reminder.minute);
     final theme = Theme.of(context);
@@ -201,16 +204,16 @@ class _ReminderTile extends ConsumerWidget {
         return await showDialog<bool>(
               context: context,
               builder: (context) => AlertDialog(
-                title: const Text('Видалити нагадування?'),
-                content: Text('«${reminder.title}» буде видалено.'),
+                title: Text(l10n.deleteTitle),
+                content: Text(l10n.deleteBody(reminder.title)),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context, false),
-                    child: const Text('Скасувати'),
+                    child: Text(l10n.cancel),
                   ),
                   FilledButton(
                     onPressed: () => Navigator.pop(context, true),
-                    child: const Text('Видалити'),
+                    child: Text(l10n.delete),
                   ),
                 ],
               ),
@@ -227,7 +230,7 @@ class _ReminderTile extends ConsumerWidget {
           ),
         ),
         subtitle: Text(
-          '${reminder.title} · ${Weekdays.describe(reminder.weekdayMask)}',
+          '${reminder.title} · ${Weekdays.describe(reminder.weekdayMask, l10n)}',
         ),
         trailing: Switch(
           value: reminder.enabled,
@@ -243,6 +246,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = L10n.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -251,15 +255,10 @@ class _EmptyState extends StatelessWidget {
           children: [
             const Icon(Icons.notifications_none, size: 64),
             const SizedBox(height: 16),
-            Text(
-              'Немає нагадувань',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
+            Text(l10n.emptyTitle,
+                style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
-            const Text(
-              'Додайте нагадування кнопкою внизу.',
-              textAlign: TextAlign.center,
-            ),
+            Text(l10n.emptyBody, textAlign: TextAlign.center),
           ],
         ),
       ),

@@ -1,5 +1,8 @@
+import 'dart:ui' show Locale;
+
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:xsilent/l10n/app_localizations.dart';
 import 'package:xsilent/models/weekdays.dart';
 import 'package:xsilent/utils/next_occurrence.dart';
 
@@ -39,9 +42,17 @@ void main() {
     });
 
     test('describe розпізнає типові набори', () {
-      expect(Weekdays.describe(Weekdays.everyDay), 'Щодня');
-      expect(Weekdays.describe(0x1F), 'По буднях');
-      expect(Weekdays.describe(0), 'Не повторюється');
+      final uk = lookupL10n(const Locale('uk'));
+      expect(Weekdays.describe(Weekdays.everyDay, uk), 'Щодня');
+      expect(Weekdays.describe(0x1F, uk), 'По буднях');
+      expect(Weekdays.describe(0, uk), 'Не повторюється');
+      expect(Weekdays.describe(0x60, uk), 'На вихідних');
+    });
+
+    test('describe англійською', () {
+      final en = lookupL10n(const Locale('en'));
+      expect(Weekdays.describe(Weekdays.everyDay, en), 'Every day');
+      expect(Weekdays.describe(0x1F, en), 'Weekdays');
     });
   });
 }

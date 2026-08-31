@@ -1,16 +1,18 @@
 import 'package:drift/drift.dart';
 
 import '../database/database.dart';
-import '../services/notification_service.dart';
+import '../l10n/app_localizations.dart';
 import '../models/weekdays.dart';
+import '../services/notification_service.dart';
 
 /// Єдина точка доступу до нагадувань: усі зміни в БД одразу
 /// синхронізуються зі сповіщеннями (і генерацією озвучення).
 class RemindersRepository {
-  RemindersRepository(this._db, this._notifications);
+  RemindersRepository(this._db, this._notifications, this._l10n);
 
   final AppDatabase _db;
   final NotificationService _notifications;
+  final L10n _l10n;
 
   Stream<List<Reminder>> watchAll() {
     return (_db.select(_db.reminders)
@@ -27,31 +29,54 @@ class RemindersRepository {
         .getSingle();
   }
 
-  static const String _builtInBody =
-      'УВАГА! Оголошується загальнонаціональна хвилина мовчання.';
+  /// Значення `builtInTitle` / `builtInAnnouncement` для всіх підтримуваних мов —
+  /// щоб відрізнити «дефолтний» текст вбудованого нагадування від правки користувача.
+  static Iterable<L10n> _allLocales() =>
+      L10n.supportedLocales.map((l) => lookupL10n(l));
 
-  /// Створює вбудоване нагадування (щодня о 9:00), якщо база порожня.
-  /// Для баз зі старих схем — заповнює тіло вбудованого нагадування.
-  Future<void> seedDefaultIfEmpty() async {
+  static Set<String> _defaultTitles() =>
+      _allLocales().map((l) => l.builtInTitle).toSet();
+  static Set<String> _defaultBodies() =>
+      _allLocales().map((l) => l.builtInAnnouncement).toSet();
+
+  /// Приводить БД і заплановані сповіщення у відповідність до поточної мови:
+  /// створює вбудоване нагадування (щодня о 9:00), якщо база порожня;
+  /// перелокалізовує його назву/тіло, якщо їх не редагували; перестворює канали
+  /// й переплановує сповіщення. Викликається на старті та після кожної зміни
+  /// мови (виклики серіалізуються в `main`).
+  Future<void> reconcile() async {
     final existing = await _db.select(_db.reminders).get();
+
     if (existing.isEmpty) {
       await create(
-        title: 'Хвилина мовчання',
-        body: _builtInBody,
+        title: _l10n.builtInTitle,
+        body: _l10n.builtInAnnouncement,
         hour: 9,
         minute: 0,
         weekdayMask: Weekdays.everyDay,
         isBuiltIn: true,
       );
-      return;
-    }
-
-    for (final reminder in existing) {
-      if (reminder.isBuiltIn && _normalize(reminder.body) == null) {
-        await (_db.update(_db.reminders)..where((t) => t.id.equals(reminder.id)))
-            .write(const RemindersCompanion(body: Value(_builtInBody)));
+    } else {
+      for (final reminder in existing) {
+        if (!reminder.isBuiltIn) continue;
+        var patch = const RemindersCompanion();
+        if (_defaultTitles().contains(reminder.title)) {
+          patch = patch.copyWith(title: Value(_l10n.builtInTitle));
+        }
+        // Бекфіл тіла для баз зі старих схем + перелокалізація дефолтного тексту.
+        if (_normalize(reminder.body) == null ||
+            _defaultBodies().contains(reminder.body)) {
+          patch = patch.copyWith(body: Value(_l10n.builtInAnnouncement));
+        }
+        if (patch != const RemindersCompanion()) {
+          await (_db.update(_db.reminders)
+                ..where((t) => t.id.equals(reminder.id)))
+              .write(patch);
+        }
       }
     }
+
+    await _notifications.init();
     await _notifications.syncAll(await _db.select(_db.reminders).get());
   }
 

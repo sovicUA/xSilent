@@ -99,12 +99,18 @@ WhatsApp/Signal через кнопку дії в сповіщенні — з'я
 - [x] Головний екран (2026-08-31): вбудоване «Хвилина мовчання» завжди перше, акцентоване (`Card` на `primaryContainer`, іконка-вогник `lib/widgets/candle_flame.dart` — `CustomPainter`, монохром у `onPrimaryContainer`). Далі роздільник `──── НАГАДУВАННЯ ────` (`_SectionSeparator`, лише коли є власні), потім власні за часом. Макет узгоджено з користувачем — `design/mockups/reminders-list.html` (артефакт `claude.ai/code/artifact/5d2ff3f8...`).
 - [x] Кнопки на банері сповіщення: **«Гаразд»** і **«Відкласти»** — обидві з `cancelNotification: true` (ховають сповіщення). «Відкласти» (на `NotificationService.snoozeDelay` = 5 хв) — лише для власних, не для вбудованого. **Обов'язково:** `<receiver ... ActionBroadcastReceiver />` в AndroidManifest, інакше кнопки нічого не роблять (плагін не обробляє action). Топ-рівневий `notificationActionCallback` (foreground + background), payload у JSON. Відкладене сповіщення має id `reminderId*8` (weekday 0); планується тим самим `zonedSchedule` на тому ж каналі.
 
+- [x] **Локалізація укр/англ + вибір мови (2026-08-31).**
+  - Flutter `gen_l10n`: `l10n.yaml`, `lib/l10n/app_uk.arb` (шаблон) + `app_en.arb`, генерований `lib/l10n/app_localizations*.dart` **комітимо**. Клас `L10n`, топ-рівнева синхронна `lookupL10n(Locale)` — тож рядки доступні в провайдерах і фоновому ізоляті (`notificationActionCallback` бере `locale` з payload).
+  - `lib/services/app_settings.dart`: `localeControllerProvider` (`Notifier<Locale?>`, `null` = авто, зберігається в `shared_preferences` ключ `app_locale`); `deviceLocalesProvider` (`Notifier` + `WidgetsBindingObserver.didChangeLocales` — щоб пережити стартову гонку, коли `PlatformDispatcher.locales` ще віддає `ro.product.locale`); `effectiveLocaleProvider` = вибір користувача або `regionLocale(deviceLocales)` (країна ∈ {UA,RU,BY} → uk, інакше en). Це **єдине джерело** і для `MaterialApp.locale`, і для `l10nProvider` (жодних `Localizations.localeOf` / postFrame).
+  - `RemindersRepository.reconcile()` (замінив `seedDefaultIfEmpty` + `onLocaleChanged`): сід вбудованого нагадування + перелокалізація його `title`/`body`, якщо збігаються з дефолтом будь-якої мови (ручні правки не чіпає) + `_notifications.init()` + `syncAll`. Викликається з **єдиного глобального `Future`-ланцюжка** в `main.dart` через `container.listen(effectiveLocaleProvider, fireImmediately: true)` — серіалізовано, репозиторій читається в момент виконання (свіжа мова), тож застаріле перепланування не перетирає нове.
+  - `NotificationService._reconcile`/`sync`: канали (`chan*Name/Desc`), тексти pre/end, кнопки, назва групи, `spokenChannelName/Desc` — через `l10n`. Прибирання старих `spoken_r*` каналів/файлів тепер і в гілці повторного використання каналу (не лише при створенні нового).
+  - Перевірено на Lenovo (uk-UA, `ro.product.locale=en-US`): свіжа інсталяція → все укр; перемикання на English у налаштуваннях → UI + канали + текст вбудованого наживо англійською, TTS переозвучено; назад на «Авто» → все укр, англ. `spoken_*` канал → `mDeleted=true`.
+
 ## Відкриті задачі
 
 - [ ] Живий тест 3-частинної послідовності «хвилини мовчання» на пристрої (заблокований екран).
 - [ ] Реальні скріншоти застосунку для лістингу Play Store.
 - [ ] iOS: збірка/тест; фонове озвучення через `Library/Sounds/` (модель даних уже кросплатформна).
-- [ ] Локалізація рядків (назви каналів, тексти сповіщень, кнопки) — зараз хардкод українською.
 - [ ] Release signing config (зараз release підписується debug-ключем; акаунт розробника ще на верифікації).
 - [ ] Більше тестів (`NotificationService`, `AnnouncementService`, репозиторій, віджети).
 - [ ] Міграція `flutter_timezone` на Built-in Kotlin (попередження при збірці) або заміна пакета.

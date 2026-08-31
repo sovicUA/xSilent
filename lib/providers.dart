@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'data/reminders_repository.dart';
 import 'database/database.dart';
 import 'services/announcement_service.dart';
+import 'services/app_settings.dart';
 import 'services/notification_service.dart';
 import 'services/sound_store.dart';
 
@@ -20,6 +21,7 @@ final announcementServiceProvider = Provider<AnnouncementService>((ref) {
 
 final notificationServiceProvider = Provider<NotificationService>((ref) {
   return NotificationService(
+    l10n: ref.watch(l10nProvider),
     announcements: ref.watch(announcementServiceProvider),
     soundStore: ref.watch(soundStoreProvider),
   );
@@ -29,6 +31,7 @@ final remindersRepositoryProvider = Provider<RemindersRepository>((ref) {
   return RemindersRepository(
     ref.watch(databaseProvider),
     ref.watch(notificationServiceProvider),
+    ref.watch(l10nProvider),
   );
 });
 
