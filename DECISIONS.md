@@ -43,8 +43,8 @@ WhatsApp/Signal через кнопку дії в сповіщенні — з'я
 | Room (Entity/DAO/Database) | **`drift`** (обрано 2026-08-30) |
 | Jetpack Compose UI | Flutter widgets |
 | ViewModel + StateFlow | **Riverpod** (обрано 2026-08-30) |
-| `AlarmManager` + `AlarmReceiver` + ручний розрахунок наступного спрацювання | `flutter_local_notifications` (візуальне сповіщення) + `android_alarm_manager_plus` (озвучення, Android) — див. розділ «Озвучення сповіщень» |
-| `BootReceiver` (відновлення будильників після перезавантаження) | `flutter_local_notifications` сам реєструє ресивер; `android_alarm_manager_plus` — через `rescheduleOnReboot: true` + `RebootBroadcastReceiver`. На iOS ОС зберігає заплановані сповіщення без додаткового коду |
+| `AlarmManager` + `AlarmReceiver` + ручний розрахунок наступного спрацювання | `flutter_local_notifications.zonedSchedule` (`DateTimeComponents.dayOfWeekAndTime` — щотижневий повтор вбудований) |
+| `BootReceiver` (відновлення будильників після перезавантаження) | `flutter_local_notifications` сам реєструє ресивер. На iOS ОС зберігає заплановані сповіщення без додаткового коду |
 
 ## Середовище розробки
 
@@ -83,7 +83,28 @@ WhatsApp/Signal через кнопку дії в сповіщенні — з'я
 - [x] Озвучення сповіщень (TTS), Android. `android_alarm_manager_plus` планує точний alarm паралельно до `zonedSchedule`; при спрацюванні фоновий ізолят (`speechAlarmCallback` у `lib/services/speech_alarm.dart`) озвучує `body` через `flutter_tts` (`uk-UA` з фолбеком) і переставляє себе на наступний тиждень. Візуальне сповіщення від `zonedSchedule` лишається незалежним (працює навіть якщо OEM вб'є ізолят). Колонка `speakAloud` (schemaVersion 3). Прапорець «Озвучити сповіщення» в редакторі: активний лише за наявності опису, за замовчуванням увімкнений коли опис введено. Кнопка «Прослухати» (прев'ю). Маніфест: `WAKE_LOCK`, `FOREGROUND_SERVICE`, сервіс+ресивери плагіна, `TTS_SERVICE` у `<queries>`.
 - [x] Функціональна перевірка голосу на пристрої (Lenovo TB305XU, Android 15) — **пройдено**. З вимкненим екраном: alarm спрацював точно в час → гонг каналу → пауза 1.5 с → фоновий ізолят озвучив текст українською (Google TTS, вбудований голос `uk-ua-x-hfd-seanet-embedded`) через динамік + сповіщення + alarm переставився на наступний тиждень. Послідовність «гонг → пауза → голос» без накладання. Спостереження: Android 15 «audio hardening» відхиляє запит audio focus від фонового застосунку (`focus: true`), але саме відтворення проходить. Якщо колись знадобиться дакінг музики під час озвучення — переносити callback у foreground service.
 - [x] Озвучення на заблокованому пристрої (Motorola Edge 50 Fusion, Android 16). Проблема: TTS з фонового ізоляту відкладалося до розблокування (чути лише гонг), бо Android 16 «AudioHardening» глушить фонове відтворення звичайного медіа. Фікс: `tts.setAudioAttributesForNavigation()` у `configureTts` — озвучення грає з класом `USAGE_ASSISTANCE_NAVIGATION_GUIDANCE` («голос навігатора»), який виключений з background-mute (як голос Google Maps). Перевірено на Motorola із заблокованим екраном — **працює**. (У логах лишається попередження `AudioHardening ... would be muted` для TTS-сервісу, але нав-guidance відтворюється попри це.)
-- [ ] iOS-озвучення у фоні (окремий етап; `speakAloud` та прев'ю вже кросплатформні).
+- [x] **Озвучення переписано на «звук каналу» (Option A, 2026-08-31).** Пункти 83–85 вище — застаріла реалізація через `android_alarm_manager_plus` (ненадійна на Motorola вдень — Android глушив фонове аудіо застосунку). Нова архітектура:
+  - `android_alarm_manager_plus` **видалено**. Щотижневий повтор — знову `zonedSchedule` (`DateTimeComponents.dayOfWeekAndTime`).
+  - При збереженні/прев'ю нагадування `AnnouncementService` (`lib/services/announcement_service.dart`) синтезує `body` через `flutter_tts.synthesizeToFile`, склеює в Dart «гонг (`assets/audio/gong.wav`) + 400 мс тиші + мовлення» в один WAV (`lib/utils/wav.dart`), гучність — множенням семплів.
+  - Нативний `SoundStore` (`android/.../SoundStore.kt` + MethodChannel `xsilent/sound_store`) кладе WAV у MediaStore `Notifications/xSilent`, `IS_NOTIFICATION=1` → `content://` URI. **Без дозволів** (власні файли, Android 10+).
+  - Канал `spoken_r{id}_{hash}` (hash = **FNV-1a 32-біт** над `body|volume` — `String.hashCode` у Dart рандомізується на кожен запуск, тут потрібен детермінований), `sound: UriAndroidNotificationSound(uri)`, importance MAX, група `spoken_group`. Зміна тексту/гучності → новий hash → новий канал+файл, старі підчищаються. `sync()` пропускає синтез, якщо канал із цільовим hash уже існує (`getNotificationChannels()`) — на старті нічого не переґенеровується.
+  - **Систе­ма програє звук каналу незалежно від фонових обмежень** — те, що робив гонг, тепер робить усе оголошення.
+  - Нова колонка `Reminders.announcementVolume` (real, default 1.0), schemaVersion **4**. Повзунок «Гучність озвучення» в редакторі (per-reminder).
+  - Прев'ю (`Прослухати`): та сама генерація → програвання файлу через `audioplayers`; якщо тривалість > `AnnouncementService.maxLength` (30 с) — SnackBar-попередження про обрізання.
+  - Гонг замінено на `~/Downloads/gong.mp3` користувача (декодовано в `assets/audio/gong.wav` 24кГц моно скриптом `scratchpad/decode_gong.py`).
+  - `main()`: `seedDefaultIfEmpty` тепер fire-and-forget після `runApp` (синтез не тримає сплеш).
+  - **Перевірено на Motorola (Android 16): грає заблокованим/вдень — працює** (те, що не працювало через alarm-менеджер). Канал має `mSound=content://media/...`, файл у MediaStore `Notifications/xSilent` `is_notification=1`. Після фіксу hash-у на старті нема churn каналів/файлів (2 канали, 2 файли, стабільно). Кнопка «Прослухати» + повзунок гучності — ок.
+- [x] **Два гонги + послідовність «хвилини мовчання» (2026-08-31).**
+  - **Основний гонг** (`assets/audio/main_gong.wav` + `res/raw/main_gong.wav`) — для вбудованого нагадування. **Додатковий гонг** (`res/raw/additional_gong.wav`, обрізаний до 1.8 с з `~/Downloads/soundreality-notification-tone-443095.mp3`, `scratchpad/make_additional_gong.py`) — для власних нагадувань користувача.
+  - `AnnouncementService` тепер приймає `Gong` (main/additional) — hash каналу залежить від гонга; вибір: `reminder.isBuiltIn ? Gong.main : Gong.additional`.
+  - Канали з новими id (старі видалено в `init()`): `moment_of_silence_v2` (main_gong), `custom_reminders_v2` (additional_gong), `mos_pre` (additional_gong), `mos_end` (main_gong).
+  - Вбудоване нагадування планує **3 сповіщення на день** (id-бази `_preIdBase`/`_endIdBase`):
+    - `T-10с` (`_preLead`): «Нагадування про хвилину мовчання» + додатковий гонг (`mos_pre`).
+    - `T`: основне оголошення (`spoken_r1_*`, основний гонг + TTS).
+    - `T+1хв` (`_silenceLength`): «Хвилину мовчання завершено» + основний гонг (`mos_end`).
+  - `dayOfWeekAndTime` коректно зберігає секунди — перевірено в `dumpsys alarm` (08:59:50 / 09:00:00 / 09:01:00).
+- [x] Дефолтна назва нового нагадування — «Сповіщення» (не «Хвилина мовчання»).
+- [ ] iOS-озвучення у фоні (через `Library/Sounds/`; `speakAloud`/гучність/прев'ю вже кросплатформні на рівні даних).
 - [x] Кнопки на банері сповіщення: **«Гаразд»** і **«Відкласти»** — обидві з `cancelNotification: true` (ховають сповіщення). «Відкласти» (на `NotificationService.snoozeDelay` = 5 хв) — лише для власних, не для вбудованого. **Обов'язково:** `<receiver ... ActionBroadcastReceiver />` в AndroidManifest, інакше кнопки нічого не роблять (плагін не обробляє action). Топ-рівневий `notificationActionCallback` (foreground + background), payload у JSON (id/title/body/speak/builtIn, без звернення до БД). Відкладене сповіщення має id `reminderId*8` (weekday 0); озвучення відкладеного — разовий alarm `armSnoozeAlarm`, `speechAlarmCallback` для weekday 0 говорить, але не переставляє на +тиждень.
 - [ ] Локалізація рядків (назви каналів, тексти сповіщень, кнопки) — зараз хардкод українською.
 - [ ] Дозвіл на сповіщення (`POST_NOTIFICATIONS`) у release-збірці — перевірити, що системний запит показується.

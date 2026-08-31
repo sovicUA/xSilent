@@ -1,11 +1,13 @@
 import 'dart:async';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../database/database.dart';
 import '../models/weekdays.dart';
 import '../providers.dart';
+import '../services/announcement_service.dart';
 
 class EditReminderScreen extends ConsumerStatefulWidget {
   const EditReminderScreen({super.key, this.reminder});
@@ -21,22 +23,22 @@ class EditReminderScreen extends ConsumerStatefulWidget {
 class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
   late final TextEditingController _titleController;
   late final TextEditingController _bodyController;
+  final AudioPlayer _player = AudioPlayer();
+
   late TimeOfDay _time;
   late int _weekdayMask;
-
-  /// Бажання користувача озвучувати. Діє лише коли є опис ([_hasBody]).
   late bool _speakAloud;
-
-  /// Чи користувач вручну перемикав прапорець — тоді не перевизначаємо його
-  /// при введенні опису.
   late bool _speakAloudTouched;
+  late double _volume;
+
+  bool _previewBusy = false;
 
   @override
   void initState() {
     super.initState();
     final reminder = widget.reminder;
     _titleController = TextEditingController(
-      text: reminder?.title ?? 'Хвилина мовчання',
+      text: reminder?.title ?? 'Сповіщення',
     );
     _bodyController = TextEditingController(text: reminder?.body ?? '');
     _time = reminder == null
@@ -45,11 +47,10 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
     _weekdayMask = reminder?.weekdayMask ?? Weekdays.everyDay;
     _speakAloud = reminder?.speakAloud ?? true;
     _speakAloudTouched = reminder != null;
+    _volume = reminder?.announcementVolume ?? 1.0;
   }
 
   bool get _hasBody => _bodyController.text.trim().isNotEmpty;
-
-  /// Фактичний стан прапорця з урахуванням наявності опису.
   bool get _speakAloudEffective => _hasBody && _speakAloud;
 
   void _onBodyChanged(String _) {
@@ -62,6 +63,7 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
   void dispose() {
     _titleController.dispose();
     _bodyController.dispose();
+    _player.dispose();
     super.dispose();
   }
 
@@ -73,7 +75,37 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
   }
 
   Future<void> _preview() async {
-    await ref.read(ttsServiceProvider).speak(_bodyController.text.trim());
+    if (_previewBusy || !_hasBody) return;
+    setState(() => _previewBusy = true);
+    try {
+      final gong = (widget.reminder?.isBuiltIn ?? false)
+          ? Gong.main
+          : Gong.additional;
+      final result = await ref.read(announcementServiceProvider).preview(
+            text: _bodyController.text.trim(),
+            volume: _volume,
+            gong: gong,
+          );
+      if (!mounted) return;
+      if (result.duration > AnnouncementService.maxLength) {
+        _showSnack(
+          'Озвучення триває ${result.duration.inSeconds} с. У сповіщенні воно '
+          'буде обрізане до ~30 с — скоротіть текст.',
+        );
+      }
+      await _player.stop();
+      await _player.play(DeviceFileSource(result.localPath));
+    } on AnnouncementException catch (e) {
+      if (mounted) _showSnack('Не вдалося озвучити: ${e.message}');
+    } finally {
+      if (mounted) setState(() => _previewBusy = false);
+    }
+  }
+
+  void _showSnack(String text) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(text)));
   }
 
   bool get _canSave =>
@@ -93,6 +125,7 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
         minute: _time.minute,
         weekdayMask: _weekdayMask,
         speakAloud: _speakAloudEffective,
+        announcementVolume: _volume,
       );
     } else {
       await repository.update(
@@ -103,6 +136,7 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
         minute: _time.minute,
         weekdayMask: _weekdayMask,
         speakAloud: _speakAloudEffective,
+        announcementVolume: _volume,
       );
     }
     if (mounted) Navigator.of(context).pop();
@@ -154,7 +188,13 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
               helperText: 'Необовʼязково — показується під назвою у шторці',
               border: const OutlineInputBorder(),
               suffixIcon: IconButton(
-                icon: const Icon(Icons.volume_up_outlined),
+                icon: _previewBusy
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.volume_up_outlined),
                 tooltip: 'Прослухати',
                 onPressed: _hasBody ? () => unawaited(_preview()) : null,
               ),
@@ -171,7 +211,7 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
             title: const Text('Озвучити сповіщення'),
             subtitle: Text(
               _hasBody
-                  ? 'Проговорити текст уголос при спрацюванні (TTS)'
+                  ? 'Програти «гонг + текст» при спрацюванні'
                   : 'Додайте текст сповіщення, щоб увімкнути',
             ),
             value: _speakAloudEffective,
@@ -182,6 +222,29 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
                     })
                 : null,
           ),
+          if (_speakAloudEffective) ...[
+            Row(
+              children: [
+                const Icon(Icons.volume_down_outlined, size: 20),
+                Expanded(
+                  child: Slider(
+                    value: _volume,
+                    label: '${(_volume * 100).round()}%',
+                    divisions: 20,
+                    onChanged: (v) => setState(() => _volume = v),
+                  ),
+                ),
+                const Icon(Icons.volume_up_outlined, size: 20),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.only(left: 4, bottom: 4),
+              child: Text(
+                'Гучність озвучення: ${(_volume * 100).round()}%',
+                style: theme.textTheme.bodySmall,
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           Text('Повторювати', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),

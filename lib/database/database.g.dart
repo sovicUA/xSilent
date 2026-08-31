@@ -104,6 +104,18 @@ class $RemindersTable extends Reminders
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _announcementVolumeMeta =
+      const VerificationMeta('announcementVolume');
+  @override
+  late final GeneratedColumn<double> announcementVolume =
+      GeneratedColumn<double>(
+        'announcement_volume',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(1.0),
+      );
   static const VerificationMeta _isBuiltInMeta = const VerificationMeta(
     'isBuiltIn',
   );
@@ -141,6 +153,7 @@ class $RemindersTable extends Reminders
     weekdayMask,
     enabled,
     speakAloud,
+    announcementVolume,
     isBuiltIn,
     createdAt,
   ];
@@ -210,6 +223,15 @@ class $RemindersTable extends Reminders
         speakAloud.isAcceptableOrUnknown(data['speak_aloud']!, _speakAloudMeta),
       );
     }
+    if (data.containsKey('announcement_volume')) {
+      context.handle(
+        _announcementVolumeMeta,
+        announcementVolume.isAcceptableOrUnknown(
+          data['announcement_volume']!,
+          _announcementVolumeMeta,
+        ),
+      );
+    }
     if (data.containsKey('is_built_in')) {
       context.handle(
         _isBuiltInMeta,
@@ -263,6 +285,10 @@ class $RemindersTable extends Reminders
         DriftSqlType.bool,
         data['${effectivePrefix}speak_aloud'],
       )!,
+      announcementVolume: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}announcement_volume'],
+      )!,
       isBuiltIn: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_built_in'],
@@ -299,6 +325,9 @@ class Reminder extends DataClass implements Insertable<Reminder> {
 
   /// Чи проговорювати текст сповіщення вголос (TTS) при спрацюванні.
   final bool speakAloud;
+
+  /// Гучність озвучення саме цього нагадування, 0.0–1.0.
+  final double announcementVolume;
   final bool isBuiltIn;
   final DateTime createdAt;
   const Reminder({
@@ -310,6 +339,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     required this.weekdayMask,
     required this.enabled,
     required this.speakAloud,
+    required this.announcementVolume,
     required this.isBuiltIn,
     required this.createdAt,
   });
@@ -326,6 +356,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     map['weekday_mask'] = Variable<int>(weekdayMask);
     map['enabled'] = Variable<bool>(enabled);
     map['speak_aloud'] = Variable<bool>(speakAloud);
+    map['announcement_volume'] = Variable<double>(announcementVolume);
     map['is_built_in'] = Variable<bool>(isBuiltIn);
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
@@ -341,6 +372,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
       weekdayMask: Value(weekdayMask),
       enabled: Value(enabled),
       speakAloud: Value(speakAloud),
+      announcementVolume: Value(announcementVolume),
       isBuiltIn: Value(isBuiltIn),
       createdAt: Value(createdAt),
     );
@@ -360,6 +392,9 @@ class Reminder extends DataClass implements Insertable<Reminder> {
       weekdayMask: serializer.fromJson<int>(json['weekdayMask']),
       enabled: serializer.fromJson<bool>(json['enabled']),
       speakAloud: serializer.fromJson<bool>(json['speakAloud']),
+      announcementVolume: serializer.fromJson<double>(
+        json['announcementVolume'],
+      ),
       isBuiltIn: serializer.fromJson<bool>(json['isBuiltIn']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
@@ -376,6 +411,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
       'weekdayMask': serializer.toJson<int>(weekdayMask),
       'enabled': serializer.toJson<bool>(enabled),
       'speakAloud': serializer.toJson<bool>(speakAloud),
+      'announcementVolume': serializer.toJson<double>(announcementVolume),
       'isBuiltIn': serializer.toJson<bool>(isBuiltIn),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
@@ -390,6 +426,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     int? weekdayMask,
     bool? enabled,
     bool? speakAloud,
+    double? announcementVolume,
     bool? isBuiltIn,
     DateTime? createdAt,
   }) => Reminder(
@@ -401,6 +438,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     weekdayMask: weekdayMask ?? this.weekdayMask,
     enabled: enabled ?? this.enabled,
     speakAloud: speakAloud ?? this.speakAloud,
+    announcementVolume: announcementVolume ?? this.announcementVolume,
     isBuiltIn: isBuiltIn ?? this.isBuiltIn,
     createdAt: createdAt ?? this.createdAt,
   );
@@ -418,6 +456,9 @@ class Reminder extends DataClass implements Insertable<Reminder> {
       speakAloud: data.speakAloud.present
           ? data.speakAloud.value
           : this.speakAloud,
+      announcementVolume: data.announcementVolume.present
+          ? data.announcementVolume.value
+          : this.announcementVolume,
       isBuiltIn: data.isBuiltIn.present ? data.isBuiltIn.value : this.isBuiltIn,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
@@ -434,6 +475,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
           ..write('weekdayMask: $weekdayMask, ')
           ..write('enabled: $enabled, ')
           ..write('speakAloud: $speakAloud, ')
+          ..write('announcementVolume: $announcementVolume, ')
           ..write('isBuiltIn: $isBuiltIn, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -450,6 +492,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     weekdayMask,
     enabled,
     speakAloud,
+    announcementVolume,
     isBuiltIn,
     createdAt,
   );
@@ -465,6 +508,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
           other.weekdayMask == this.weekdayMask &&
           other.enabled == this.enabled &&
           other.speakAloud == this.speakAloud &&
+          other.announcementVolume == this.announcementVolume &&
           other.isBuiltIn == this.isBuiltIn &&
           other.createdAt == this.createdAt);
 }
@@ -478,6 +522,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
   final Value<int> weekdayMask;
   final Value<bool> enabled;
   final Value<bool> speakAloud;
+  final Value<double> announcementVolume;
   final Value<bool> isBuiltIn;
   final Value<DateTime> createdAt;
   const RemindersCompanion({
@@ -489,6 +534,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     this.weekdayMask = const Value.absent(),
     this.enabled = const Value.absent(),
     this.speakAloud = const Value.absent(),
+    this.announcementVolume = const Value.absent(),
     this.isBuiltIn = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
@@ -501,6 +547,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     this.weekdayMask = const Value.absent(),
     this.enabled = const Value.absent(),
     this.speakAloud = const Value.absent(),
+    this.announcementVolume = const Value.absent(),
     this.isBuiltIn = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : title = Value(title),
@@ -515,6 +562,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     Expression<int>? weekdayMask,
     Expression<bool>? enabled,
     Expression<bool>? speakAloud,
+    Expression<double>? announcementVolume,
     Expression<bool>? isBuiltIn,
     Expression<DateTime>? createdAt,
   }) {
@@ -527,6 +575,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
       if (weekdayMask != null) 'weekday_mask': weekdayMask,
       if (enabled != null) 'enabled': enabled,
       if (speakAloud != null) 'speak_aloud': speakAloud,
+      if (announcementVolume != null) 'announcement_volume': announcementVolume,
       if (isBuiltIn != null) 'is_built_in': isBuiltIn,
       if (createdAt != null) 'created_at': createdAt,
     });
@@ -541,6 +590,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     Value<int>? weekdayMask,
     Value<bool>? enabled,
     Value<bool>? speakAloud,
+    Value<double>? announcementVolume,
     Value<bool>? isBuiltIn,
     Value<DateTime>? createdAt,
   }) {
@@ -553,6 +603,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
       weekdayMask: weekdayMask ?? this.weekdayMask,
       enabled: enabled ?? this.enabled,
       speakAloud: speakAloud ?? this.speakAloud,
+      announcementVolume: announcementVolume ?? this.announcementVolume,
       isBuiltIn: isBuiltIn ?? this.isBuiltIn,
       createdAt: createdAt ?? this.createdAt,
     );
@@ -585,6 +636,9 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     if (speakAloud.present) {
       map['speak_aloud'] = Variable<bool>(speakAloud.value);
     }
+    if (announcementVolume.present) {
+      map['announcement_volume'] = Variable<double>(announcementVolume.value);
+    }
     if (isBuiltIn.present) {
       map['is_built_in'] = Variable<bool>(isBuiltIn.value);
     }
@@ -605,6 +659,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
           ..write('weekdayMask: $weekdayMask, ')
           ..write('enabled: $enabled, ')
           ..write('speakAloud: $speakAloud, ')
+          ..write('announcementVolume: $announcementVolume, ')
           ..write('isBuiltIn: $isBuiltIn, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -632,6 +687,7 @@ typedef $$RemindersTableCreateCompanionBuilder = RemindersCompanion Function({
   Value<int> weekdayMask,
   Value<bool> enabled,
   Value<bool> speakAloud,
+  Value<double> announcementVolume,
   Value<bool> isBuiltIn,
   Value<DateTime> createdAt,
 });
@@ -644,6 +700,7 @@ typedef $$RemindersTableUpdateCompanionBuilder = RemindersCompanion Function({
   Value<int> weekdayMask,
   Value<bool> enabled,
   Value<bool> speakAloud,
+  Value<double> announcementVolume,
   Value<bool> isBuiltIn,
   Value<DateTime> createdAt,
 });
@@ -694,6 +751,11 @@ class $$RemindersTableFilterComposer
 
   ColumnFilters<bool> get speakAloud => $composableBuilder(
     column: $table.speakAloud,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get announcementVolume => $composableBuilder(
+    column: $table.announcementVolume,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -757,6 +819,11 @@ class $$RemindersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get announcementVolume => $composableBuilder(
+    column: $table.announcementVolume,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isBuiltIn => $composableBuilder(
     column: $table.isBuiltIn,
     builder: (column) => ColumnOrderings(column),
@@ -805,6 +872,11 @@ class $$RemindersTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<double> get announcementVolume => $composableBuilder(
+    column: $table.announcementVolume,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<bool> get isBuiltIn =>
       $composableBuilder(column: $table.isBuiltIn, builder: (column) => column);
 
@@ -848,6 +920,7 @@ class $$RemindersTableTableManager
                 Value<int> weekdayMask = const Value.absent(),
                 Value<bool> enabled = const Value.absent(),
                 Value<bool> speakAloud = const Value.absent(),
+                Value<double> announcementVolume = const Value.absent(),
                 Value<bool> isBuiltIn = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => RemindersCompanion(
@@ -859,6 +932,7 @@ class $$RemindersTableTableManager
                 weekdayMask: weekdayMask,
                 enabled: enabled,
                 speakAloud: speakAloud,
+                announcementVolume: announcementVolume,
                 isBuiltIn: isBuiltIn,
                 createdAt: createdAt,
               ),
@@ -872,6 +946,7 @@ class $$RemindersTableTableManager
                 Value<int> weekdayMask = const Value.absent(),
                 Value<bool> enabled = const Value.absent(),
                 Value<bool> speakAloud = const Value.absent(),
+                Value<double> announcementVolume = const Value.absent(),
                 Value<bool> isBuiltIn = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => RemindersCompanion.insert(
@@ -883,6 +958,7 @@ class $$RemindersTableTableManager
                 weekdayMask: weekdayMask,
                 enabled: enabled,
                 speakAloud: speakAloud,
+                announcementVolume: announcementVolume,
                 isBuiltIn: isBuiltIn,
                 createdAt: createdAt,
               ),

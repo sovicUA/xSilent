@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:ui' show Color, DartPluginRegistrant;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
@@ -8,66 +9,102 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../database/database.dart';
 import '../models/weekdays.dart';
-import 'speech_alarm.dart';
+import 'announcement_service.dart';
+import 'sound_store.dart';
 
 /// Планування локальних сповіщень для нагадувань.
 ///
-/// Кожне нагадування розкладається на окремі сповіщення — по одному на кожен
-/// увімкнений день тижня — бо [FlutterLocalNotificationsPlugin.zonedSchedule] з
-/// [DateTimeComponents.dayOfWeekAndTime] повторює подію лише для одного дня.
+/// Озвучення роблять «звуком каналу»: при збереженні нагадування
+/// [AnnouncementService] синтезує аудіофайл «гонг + текст» і кладе його в
+/// MediaStore; канал `spoken_r{id}_{hash}` вказує на цей файл. Систе­ма
+/// відтворює звук каналу незалежно від фонових обмежень застосунку.
+///
+/// Щотижневий повтор — вбудований у `zonedSchedule`
+/// (`DateTimeComponents.dayOfWeekAndTime`), переживає перезавантаження.
 class NotificationService {
-  NotificationService([FlutterLocalNotificationsPlugin? plugin])
-      : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
+  NotificationService({
+    FlutterLocalNotificationsPlugin? plugin,
+    AnnouncementService? announcements,
+    SoundStore? soundStore,
+  })  : _plugin = plugin ?? FlutterLocalNotificationsPlugin(),
+        _announcements = announcements ?? AnnouncementService(),
+        _sound = soundStore ?? const SoundStore();
 
   final FlutterLocalNotificationsPlugin _plugin;
+  final AnnouncementService _announcements;
+  final SoundStore _sound;
 
-  /// Канал вбудованого нагадування «Хвилина мовчання» — максимальна важливість.
+  static const String _spokenGroupId = 'spoken_group';
+
+  /// Вбудоване нагадування без озвучення — основний гонг.
   static const AndroidNotificationChannel _silenceChannel =
       AndroidNotificationChannel(
-    'moment_of_silence',
+    'moment_of_silence_v2',
     'Хвилина мовчання',
     description: 'Загальнонаціональна хвилина мовчання',
     importance: Importance.max,
+    sound: RawResourceAndroidNotificationSound('main_gong'),
   );
 
-  /// Канал нагадувань, які користувач створив самостійно.
+  /// Власні нагадування без озвучення — додатковий гонг.
   static const AndroidNotificationChannel _customChannel =
       AndroidNotificationChannel(
-    'custom_reminders',
+    'custom_reminders_v2',
     'Власні нагадування',
     description: 'Нагадування, які ви додали самостійно',
     importance: Importance.high,
+    sound: RawResourceAndroidNotificationSound('additional_gong'),
   );
 
-  /// Канал нагадувань з озвученням: короткий гонг замість стандартного звуку
-  /// сповіщення, після якого (з паузою) фоновий ізолят проговорює текст —
-  /// керована послідовність «гонг → пауза → оголошення» без накладання.
-  /// `gong` — `android/app/src/main/res/raw/gong.wav`.
-  static const AndroidNotificationChannel _spokenChannel =
+  /// Попереднє сповіщення за 10 с до хвилини мовчання — додатковий гонг.
+  static const AndroidNotificationChannel _mosPreChannel =
       AndroidNotificationChannel(
-    'spoken_reminders_v2',
-    'Нагадування з озвученням',
-    description: 'Гонг, після якого текст проговорюється вголос',
+    'mos_pre',
+    'Хвилина мовчання — попередження',
+    description: 'Сповіщення за 10 секунд до хвилини мовчання',
     importance: Importance.max,
-    sound: RawResourceAndroidNotificationSound('gong'),
+    sound: RawResourceAndroidNotificationSound('additional_gong'),
   );
 
-  /// Попередня версія каналу озвучення (без звуку) — видаляється в [init].
-  static const String _legacySpokenChannelId = 'spoken_reminders';
+  /// Сповіщення про завершення хвилини мовчання — основний гонг.
+  static const AndroidNotificationChannel _mosEndChannel =
+      AndroidNotificationChannel(
+    'mos_end',
+    'Хвилина мовчання — завершення',
+    description: 'Сигнал про завершення хвилини мовчання',
+    importance: Importance.high,
+    sound: RawResourceAndroidNotificationSound('main_gong'),
+  );
 
-  /// Монохромна іконка для статус-бару / банера сповіщення
-  /// (`res/drawable-*/ic_stat_xsilent.png` — білий тризуб на прозорому тлі).
+  /// Канали зі старих версій застосунку — видаляються в [init].
+  static const List<String> _legacyChannelIds = [
+    'reminders',
+    'spoken_reminders',
+    'spoken_reminders_v2',
+    'moment_of_silence',
+    'custom_reminders',
+  ];
+
   static const String _smallIcon = 'ic_stat_xsilent';
-
-  /// Акцентний колір банера (тон бренду з теми застосунку).
   static const Color _accent = Color(0xFF3F5C78);
 
-  /// Ідентифікатори кнопок на банері сповіщення.
   static const String actionOkId = 'ok';
   static const String actionSnoozeId = 'snooze';
 
-  /// На скільки «Відкласти» переносить нагадування.
   static const Duration snoozeDelay = Duration(minutes: 5);
+
+  /// За скільки до хвилини мовчання показувати попереднє сповіщення.
+  static const Duration _preLead = Duration(seconds: 10);
+
+  /// Тривалість хвилини мовчання — через цей час грає основний гонг «кінець».
+  static const Duration _silenceLength = Duration(minutes: 1);
+
+  static const int _preIdBase = 8000000;
+  static const int _endIdBase = 8100000;
+
+  AndroidFlutterLocalNotificationsPlugin? get _android =>
+      _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
 
   Future<void> init() async {
     tz_data.initializeTimeZones();
@@ -86,26 +123,30 @@ class NotificationService {
       onDidReceiveBackgroundNotificationResponse: notificationActionCallback,
     );
 
-    final android0 = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+    final android0 = _android;
     if (android0 != null) {
-      await android0.createNotificationChannel(_silenceChannel);
-      await android0.createNotificationChannel(_customChannel);
-      await android0.createNotificationChannel(_spokenChannel);
-      // Прибрати канали зі старих версій застосунку.
-      await android0.deleteNotificationChannel(channelId: _legacyChannelId);
-      await android0.deleteNotificationChannel(channelId: _legacySpokenChannelId);
+      await android0.createNotificationChannelGroup(
+        const AndroidNotificationChannelGroup(
+          _spokenGroupId,
+          'Озвучені нагадування',
+        ),
+      );
+      for (final ch in [
+        _silenceChannel,
+        _customChannel,
+        _mosPreChannel,
+        _mosEndChannel,
+      ]) {
+        await android0.createNotificationChannel(ch);
+      }
+      for (final id in _legacyChannelIds) {
+        await android0.deleteNotificationChannel(channelId: id);
+      }
     }
   }
 
-  /// Канал з версій до розділення на два — видаляється під час [init].
-  static const String _legacyChannelId = 'reminders';
-
-  /// Запитує дозволи на сповіщення (і точні будильники на Android 12+).
-  /// Повертає `true`, якщо сповіщення дозволені.
   Future<bool> requestPermissions() async {
-    final android = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+    final android = _android;
     if (android != null) {
       final granted = await android.requestNotificationsPermission() ?? false;
       await android.requestExactAlarmsPermission();
@@ -118,30 +159,119 @@ class NotificationService {
       return await ios.requestPermissions(alert: true, badge: true, sound: true) ??
           false;
     }
-
     return true;
   }
 
   /// Приводить заплановані сповіщення нагадування у відповідність до його стану.
   Future<void> sync(Reminder reminder) async {
-    await cancel(reminder.id);
-    if (!reminder.enabled) return;
+    await _cancelNotifications(reminder.id);
+
+    if (!reminder.enabled) {
+      await _purgeSpoken(reminder.id);
+      return;
+    }
 
     final body = reminder.body?.trim();
+    final spoken = reminder.speakAloud && body != null && body.isNotEmpty;
+    final gong = reminder.isBuiltIn ? Gong.main : Gong.additional;
+
+    String channelId;
+    String channelName;
+    if (spoken) {
+      final volume = reminder.announcementVolume.clamp(0.0, 1.0);
+      final targetId = _announcements.channelId(reminder.id, body, volume, gong);
+      channelName = 'Озвучення: ${reminder.title}';
+      try {
+        final existing = await _android?.getNotificationChannels() ?? [];
+        if (existing.any((c) => c.id == targetId)) {
+          channelId = targetId; // текст/гучність незмінні — канал актуальний
+        } else {
+          final result = await _announcements.build(
+            reminderId: reminder.id,
+            text: body,
+            volume: volume,
+            gong: gong,
+          );
+          channelId = result.channelId;
+          await _android?.createNotificationChannel(
+            AndroidNotificationChannel(
+              channelId,
+              channelName,
+              description: 'Озвучене нагадування «${reminder.title}»',
+              groupId: _spokenGroupId,
+              importance: Importance.max,
+              sound: UriAndroidNotificationSound(result.contentUri),
+            ),
+          );
+          await _pruneSpoken(reminder.id, keepChannelId: channelId);
+          await _sound.pruneExcept(
+            _announcements.soundPrefix(reminder.id),
+            result.soundName,
+          );
+        }
+      } on AnnouncementException catch (e) {
+        debugPrint('Озвучення не згенеровано (${reminder.id}): ${e.message}');
+        await _purgeSpoken(reminder.id);
+        channelId = _fallbackChannel(reminder).id;
+        channelName = _fallbackChannel(reminder).name;
+      }
+    } else {
+      await _purgeSpoken(reminder.id);
+      channelId = _fallbackChannel(reminder).id;
+      channelName = _fallbackChannel(reminder).name;
+    }
+
+    final details = _detailsFor(
+      channelId: channelId,
+      channelName: channelName,
+      actions: _reminderActions(isBuiltIn: reminder.isBuiltIn),
+    );
+    final payload = _encodePayload(reminder, channelId);
+
     for (final weekday in Weekdays.toWeekdays(reminder.weekdayMask)) {
+      final at = _nextInstanceOf(reminder.hour, reminder.minute, weekday);
       await _plugin.zonedSchedule(
         id: _notificationId(reminder.id, weekday),
         title: reminder.title,
         body: (body != null && body.isNotEmpty) ? body : null,
-        scheduledDate: _nextInstanceOf(reminder.hour, reminder.minute, weekday),
-        notificationDetails: _detailsFor(
-          isBuiltIn: reminder.isBuiltIn,
-          speakAloud: reminder.speakAloud,
-        ),
+        scheduledDate: at,
+        notificationDetails: details,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
-        payload: _encodePayload(reminder),
+        payload: payload,
       );
+
+      if (reminder.isBuiltIn) {
+        await _plugin.zonedSchedule(
+          id: _preIdBase + weekday,
+          title: 'Нагадування про хвилину мовчання',
+          body: null,
+          scheduledDate: at.subtract(_preLead),
+          notificationDetails: _detailsFor(
+            channelId: _mosPreChannel.id,
+            channelName: _mosPreChannel.name,
+            actions: const [
+              AndroidNotificationAction(actionOkId, 'Гаразд',
+                  cancelNotification: true),
+            ],
+          ),
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+        );
+        await _plugin.zonedSchedule(
+          id: _endIdBase + weekday,
+          title: 'Хвилину мовчання завершено',
+          body: null,
+          scheduledDate: at.add(_silenceLength),
+          notificationDetails: _detailsFor(
+            channelId: _mosEndChannel.id,
+            channelName: _mosEndChannel.name,
+            actions: const [],
+          ),
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+        );
+      }
     }
   }
 
@@ -151,106 +281,114 @@ class NotificationService {
     }
   }
 
-  /// Скасовує всі сповіщення нагадування (щотижневі + відкладене).
-  Future<void> cancel(int reminderId) async {
+  AndroidNotificationChannel _fallbackChannel(Reminder reminder) =>
+      reminder.isBuiltIn ? _silenceChannel : _customChannel;
+
+  List<AndroidNotificationAction> _reminderActions({required bool isBuiltIn}) => [
+        const AndroidNotificationAction(actionOkId, 'Гаразд',
+            cancelNotification: true),
+        if (!isBuiltIn)
+          const AndroidNotificationAction(actionSnoozeId, 'Відкласти',
+              cancelNotification: true),
+      ];
+
+  /// Повністю прибирає нагадування: сповіщення, канали озвучення, аудіофайли.
+  Future<void> purge(int reminderId) async {
+    await _cancelNotifications(reminderId);
+    await _purgeSpoken(reminderId);
+  }
+
+  Future<void> _cancelNotifications(int reminderId) async {
     await _plugin.cancel(id: snoozeNotificationId(reminderId));
     for (var weekday = 1; weekday <= 7; weekday++) {
       await _plugin.cancel(id: _notificationId(reminderId, weekday));
+      // Додаткові сповіщення хвилини мовчання (лише для вбудованого) —
+      // скасовувати завжди, зайвий cancel нешкідливий.
+      await _plugin.cancel(id: _preIdBase + weekday);
+      await _plugin.cancel(id: _endIdBase + weekday);
     }
   }
 
-  // Унікальний id сповіщення: reminderId*8 + weekday (weekday 1..7).
-  // weekday 0 зарезервовано під «відкладене» сповіщення (див. [snoozeNotificationId]).
+  Future<void> _purgeSpoken(int reminderId) async {
+    await _pruneSpoken(reminderId, keepChannelId: null);
+    await _sound.deleteAll(_announcements.soundPrefix(reminderId));
+  }
+
+  Future<void> _pruneSpoken(int reminderId, {String? keepChannelId}) async {
+    final android0 = _android;
+    if (android0 == null) return;
+    final prefix = _announcements.channelPrefix(reminderId);
+    final channels = await android0.getNotificationChannels() ?? [];
+    for (final ch in channels) {
+      if (ch.id.startsWith(prefix) && ch.id != keepChannelId) {
+        await android0.deleteNotificationChannel(channelId: ch.id);
+      }
+    }
+  }
+
   int _notificationId(int reminderId, int weekday) => reminderId * 8 + weekday;
 
   static int snoozeNotificationId(int reminderId) => reminderId * 8;
 
-  static NotificationDetails _detailsFor({
-    required bool isBuiltIn,
-    required bool speakAloud,
+  NotificationDetails _detailsFor({
+    required String channelId,
+    required String channelName,
+    required List<AndroidNotificationAction> actions,
   }) {
-    // Озвучені нагадування: канал грає короткий гонг, потім (з паузою у
-    // [gongLeadIn]) фоновий ізолят проговорює текст — без накладання.
-    final AndroidNotificationChannel channel = speakAloud
-        ? _spokenChannel
-        : (isBuiltIn ? _silenceChannel : _customChannel);
-    final urgent = isBuiltIn || speakAloud;
-    final actions = <AndroidNotificationAction>[
-      const AndroidNotificationAction(actionOkId, 'Гаразд',
-          cancelNotification: true),
-      // «Відкласти» — лише для власних нагадувань, не для «Хвилини мовчання».
-      if (!isBuiltIn)
-        const AndroidNotificationAction(actionSnoozeId, 'Відкласти',
-            cancelNotification: true),
-    ];
     return NotificationDetails(
       android: AndroidNotificationDetails(
-        channel.id,
-        channel.name,
-        channelDescription: channel.description,
+        channelId,
+        channelName,
         icon: _smallIcon,
         color: _accent,
-        importance: channel.importance,
-        priority: urgent ? Priority.max : Priority.high,
-        playSound: channel.playSound,
-        sound: channel.sound,
+        importance: Importance.max,
+        priority: Priority.max,
         category: AndroidNotificationCategory.reminder,
         actions: actions,
       ),
-      iOS: DarwinNotificationDetails(
-        // Гонг для iOS ще не вшито в бандл — поки без звуку для озвучених.
-        presentSound: !speakAloud,
-        interruptionLevel: urgent
-            ? InterruptionLevel.timeSensitive
-            : InterruptionLevel.active,
+      iOS: const DarwinNotificationDetails(
+        interruptionLevel: InterruptionLevel.timeSensitive,
       ),
     );
   }
 
-  static String _encodePayload(Reminder reminder) => jsonEncode({
+  static String _encodePayload(Reminder reminder, String channelId) =>
+      jsonEncode({
         'id': reminder.id,
         'builtIn': reminder.isBuiltIn,
-        'speak': reminder.speakAloud,
         'title': reminder.title,
         'body': reminder.body,
+        'channel': channelId,
       });
 
-  /// Переносить нагадування на [snoozeDelay]: показує гонг-сповіщення знову
-  /// і (для озвучених) планує повторне озвучення. Викликається з обробника
-  /// натискання кнопки «Відкласти» — можливо, у фоновому ізоляті.
+  /// Переносить нагадування на [snoozeDelay]: показує те саме сповіщення знову.
   Future<void> snooze(Map<String, dynamic> payload) async {
     final id = payload['id'] as int?;
     if (id == null) return;
     final isBuiltIn = payload['builtIn'] == true;
-    final speakAloud = payload['speak'] == true;
     final title = (payload['title'] as String?) ?? 'Нагадування';
     final body = (payload['body'] as String?)?.trim();
+    final channelId = (payload['channel'] as String?) ??
+        (isBuiltIn ? _silenceChannel.id : _customChannel.id);
 
     tz_data.initializeTimeZones();
     final zone = await FlutterTimezone.getLocalTimezone();
     tz.setLocalLocation(tz.getLocation(zone.identifier));
 
-    final when = tz.TZDateTime.now(tz.local).add(snoozeDelay);
-
     await _plugin.zonedSchedule(
       id: snoozeNotificationId(id),
       title: title,
       body: (body != null && body.isNotEmpty) ? body : null,
-      scheduledDate: when,
-      notificationDetails:
-          _detailsFor(isBuiltIn: isBuiltIn, speakAloud: speakAloud),
+      scheduledDate: tz.TZDateTime.now(tz.local).add(snoozeDelay),
+      notificationDetails: _detailsFor(
+        channelId: channelId,
+        channelName: title,
+        actions: _reminderActions(isBuiltIn: isBuiltIn),
+      ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       payload: jsonEncode(payload),
     );
-
-    if (speakAloud && body != null && body.isNotEmpty) {
-      await armSnoozeAlarm(id, when);
-    }
   }
-
-  /// Пауза перед озвученням: час, за який відіграє гонг каналу `spoken_reminders_v2`
-  /// (`res/raw/gong.wav` ≈ 1.4 с). Використовується фоновим ізолятом аларму.
-  static const Duration gongLeadIn = Duration(milliseconds: 1500);
 
   tz.TZDateTime _nextInstanceOf(int hour, int minute, int weekday) {
     final now = tz.TZDateTime.now(tz.local);
@@ -263,18 +401,14 @@ class NotificationService {
   }
 }
 
-/// Обробник натискання кнопок на банері сповіщення. Реєструється в
-/// [NotificationService.init] і як foreground-, і як background-callback
-/// (для останнього має бути топ-рівневою функцією з `@pragma`).
+/// Обробник натискання кнопок на банері сповіщення.
 @pragma('vm:entry-point')
 Future<void> notificationActionCallback(NotificationResponse response) async {
-  // «Гаразд» лише прибирає сповіщення (cancelNotification: true) — коду не треба.
   if (response.actionId != NotificationService.actionSnoozeId) return;
 
   final raw = response.payload;
   if (raw == null || raw.isEmpty) return;
   try {
-    // Обробник може працювати у власному фоновому ізоляті — підключити плагіни.
     DartPluginRegistrant.ensureInitialized();
     final payload = jsonDecode(raw) as Map<String, dynamic>;
     await NotificationService().snooze(payload);

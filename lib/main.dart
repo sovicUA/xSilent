@@ -1,6 +1,3 @@
-import 'dart:io' show Platform;
-
-import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -12,15 +9,9 @@ Future<void> main() async {
 
   final container = ProviderContainer();
 
-  // Ініціалізація сповіщень/alarm-ів не повинна блокувати запуск UI: якщо
-  // щось із планувальником піде не так, застосунок має лишитись придатним
-  // для перегляду й редагування нагадувань.
+  // Ініціалізація сповіщень не повинна блокувати запуск UI.
   try {
-    if (Platform.isAndroid) {
-      await AndroidAlarmManager.initialize();
-    }
     await container.read(notificationServiceProvider).init();
-    await container.read(remindersRepositoryProvider).seedDefaultIfEmpty();
   } catch (error, stack) {
     debugPrint('Помилка ініціалізації сповіщень: $error\n$stack');
   }
@@ -31,4 +22,11 @@ Future<void> main() async {
       child: const XSilentApp(),
     ),
   );
+
+  // Синхронізація нагадувань (з генерацією озвучень) — у фоні, щоб не тримати
+  // сплеш; список підтягнеться зі стріму БД одразу.
+  container.read(remindersRepositoryProvider).seedDefaultIfEmpty().catchError(
+        (Object error, StackTrace stack) =>
+            debugPrint('Помилка синхронізації нагадувань: $error\n$stack'),
+      );
 }

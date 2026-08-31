@@ -1,18 +1,16 @@
 import 'package:drift/drift.dart';
 
 import '../database/database.dart';
-import '../models/weekdays.dart';
 import '../services/notification_service.dart';
-import '../services/speech_alarm.dart';
+import '../models/weekdays.dart';
 
 /// Єдина точка доступу до нагадувань: усі зміни в БД одразу
-/// синхронізуються з запланованими сповіщеннями та alarm-ами озвучення.
+/// синхронізуються зі сповіщеннями (і генерацією озвучення).
 class RemindersRepository {
-  RemindersRepository(this._db, this._notifications, this._alarms);
+  RemindersRepository(this._db, this._notifications);
 
   final AppDatabase _db;
   final NotificationService _notifications;
-  final SpeechAlarmScheduler _alarms;
 
   Stream<List<Reminder>> watchAll() {
     return (_db.select(_db.reminders)
@@ -33,8 +31,7 @@ class RemindersRepository {
       'УВАГА! Оголошується загальнонаціональна хвилина мовчання.';
 
   /// Створює вбудоване нагадування (щодня о 9:00), якщо база порожня.
-  /// Для баз зі схеми v1 (де ще не було колонки `body`) — заповнює тіло
-  /// вбудованого нагадування.
+  /// Для баз зі старих схем — заповнює тіло вбудованого нагадування.
   Future<void> seedDefaultIfEmpty() async {
     final existing = await _db.select(_db.reminders).get();
     if (existing.isEmpty) {
@@ -55,9 +52,7 @@ class RemindersRepository {
             .write(const RemindersCompanion(body: Value(_builtInBody)));
       }
     }
-    final all = await _db.select(_db.reminders).get();
-    await _notifications.syncAll(all);
-    await _alarms.armAll(all);
+    await _notifications.syncAll(await _db.select(_db.reminders).get());
   }
 
   Future<Reminder> create({
@@ -67,6 +62,7 @@ class RemindersRepository {
     required int minute,
     required int weekdayMask,
     bool speakAloud = true,
+    double announcementVolume = 1.0,
     bool isBuiltIn = false,
   }) async {
     final reminder = await _db.into(_db.reminders).insertReturning(
@@ -77,11 +73,11 @@ class RemindersRepository {
             minute: minute,
             weekdayMask: Value(weekdayMask),
             speakAloud: Value(speakAloud),
+            announcementVolume: Value(announcementVolume),
             isBuiltIn: Value(isBuiltIn),
           ),
         );
     await _notifications.sync(reminder);
-    await _alarms.arm(reminder);
     return reminder;
   }
 
@@ -93,6 +89,7 @@ class RemindersRepository {
     required int minute,
     required int weekdayMask,
     required bool speakAloud,
+    required double announcementVolume,
   }) async {
     final updated = reminder.copyWith(
       title: title,
@@ -101,10 +98,10 @@ class RemindersRepository {
       minute: minute,
       weekdayMask: weekdayMask,
       speakAloud: speakAloud,
+      announcementVolume: announcementVolume,
     );
     await _db.update(_db.reminders).replace(updated);
     await _notifications.sync(updated);
-    await _alarms.arm(updated);
   }
 
   /// Порожній рядок → `null`, щоб у сповіщенні не було порожнього тіла.
@@ -117,13 +114,11 @@ class RemindersRepository {
     final updated = reminder.copyWith(enabled: enabled);
     await _db.update(_db.reminders).replace(updated);
     await _notifications.sync(updated);
-    await _alarms.arm(updated);
   }
 
   Future<void> delete(Reminder reminder) async {
     await (_db.delete(_db.reminders)..where((t) => t.id.equals(reminder.id)))
         .go();
-    await _notifications.cancel(reminder.id);
-    await _alarms.disarm(reminder.id);
+    await _notifications.purge(reminder.id);
   }
 }
