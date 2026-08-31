@@ -55,14 +55,6 @@ WhatsApp/Signal через кнопку дії в сповіщенні — з'я
   через Claude Code або звичайний git локально. `gh` CLI на машині не встановлено;
   автентифікація для пушу налаштована власником.
 
-## Наявний Android-проєкт (Kotlin, нативний)
-
-Попередня нативна Android-версія лишається як окремий референс (не видаляти одразу):
-структура з Room + Compose + AlarmManager, включно з CI (`.github/workflows/android-ci.yml`)
-і Gradle wrapper. При потребі може слугувати джерелом порівняння логіки під час портування
-на Dart (особливо розрахунок `nextTriggerMillis` у `AlarmScheduler.kt` — еквівалентна
-логіка знадобиться, хоч `flutter_local_notifications` і бере частину цього на себе).
-
 ## Наступні кроки
 
 - [x] Встановити Flutter SDK + Android toolchain на Windows (Flutter 3.47.2, Android SDK 36, NDK 28.2.13676358, 2026-08-30).
@@ -105,33 +97,31 @@ WhatsApp/Signal через кнопку дії в сповіщенні — з'я
   - `dayOfWeekAndTime` коректно зберігає секунди — перевірено в `dumpsys alarm` (08:59:50 / 09:00:00 / 09:01:00).
 - [x] Дефолтна назва нового нагадування — «Сповіщення» (не «Хвилина мовчання»).
 - [x] Головний екран (2026-08-31): вбудоване «Хвилина мовчання» завжди перше, акцентоване (`Card` на `primaryContainer`, іконка-вогник `lib/widgets/candle_flame.dart` — `CustomPainter`, монохром у `onPrimaryContainer`). Далі роздільник `──── НАГАДУВАННЯ ────` (`_SectionSeparator`, лише коли є власні), потім власні за часом. Макет узгоджено з користувачем — `design/mockups/reminders-list.html` (артефакт `claude.ai/code/artifact/5d2ff3f8...`).
-- [ ] iOS-озвучення у фоні (через `Library/Sounds/`; `speakAloud`/гучність/прев'ю вже кросплатформні на рівні даних).
-- [x] Кнопки на банері сповіщення: **«Гаразд»** і **«Відкласти»** — обидві з `cancelNotification: true` (ховають сповіщення). «Відкласти» (на `NotificationService.snoozeDelay` = 5 хв) — лише для власних, не для вбудованого. **Обов'язково:** `<receiver ... ActionBroadcastReceiver />` в AndroidManifest, інакше кнопки нічого не роблять (плагін не обробляє action). Топ-рівневий `notificationActionCallback` (foreground + background), payload у JSON (id/title/body/speak/builtIn, без звернення до БД). Відкладене сповіщення має id `reminderId*8` (weekday 0); озвучення відкладеного — разовий alarm `armSnoozeAlarm`, `speechAlarmCallback` для weekday 0 говорить, але не переставляє на +тиждень.
+- [x] Кнопки на банері сповіщення: **«Гаразд»** і **«Відкласти»** — обидві з `cancelNotification: true` (ховають сповіщення). «Відкласти» (на `NotificationService.snoozeDelay` = 5 хв) — лише для власних, не для вбудованого. **Обов'язково:** `<receiver ... ActionBroadcastReceiver />` в AndroidManifest, інакше кнопки нічого не роблять (плагін не обробляє action). Топ-рівневий `notificationActionCallback` (foreground + background), payload у JSON. Відкладене сповіщення має id `reminderId*8` (weekday 0); планується тим самим `zonedSchedule` на тому ж каналі.
+
+## Відкриті задачі
+
+- [ ] Живий тест 3-частинної послідовності «хвилини мовчання» на пристрої (заблокований екран).
+- [ ] Реальні скріншоти застосунку для лістингу Play Store.
+- [ ] iOS: збірка/тест; фонове озвучення через `Library/Sounds/` (модель даних уже кросплатформна).
 - [ ] Локалізація рядків (назви каналів, тексти сповіщень, кнопки) — зараз хардкод українською.
-- [ ] Дозвіл на сповіщення (`POST_NOTIFICATIONS`) у release-збірці — перевірити, що системний запит показується.
-- [ ] `.gitattributes` (`* text=auto eol=lf`) перед першим комітом — git попереджає про LF→CRLF на всіх файлах.
-- [ ] Перший git-коміт (репозиторій `git init` зроблено, нічого не закомічено).
-- [ ] Release signing config (зараз release підписується debug-ключем).
-- [ ] Тести: `NotificationService`, репозиторій, віджети.
+- [ ] Release signing config (зараз release підписується debug-ключем; акаунт розробника ще на верифікації).
+- [ ] Більше тестів (`NotificationService`, `AnnouncementService`, репозиторій, віджети).
 - [ ] Міграція `flutter_timezone` на Built-in Kotlin (попередження при збірці) або заміна пакета.
-- [ ] CI (`.github/workflows`), аналог старого `android-ci.yml`.
-- [ ] Вирішити, чи повертати можливість дублювання в месенджери (раніше прибрано).
+- [ ] CI (`.github/workflows`): analyze + test + збірка.
+- [ ] Вирішити, чи повертати можливість дублювання нагадувань у месенджери (раніше прибрано).
 
-## Структура проєкту (lib/)
+## Стек і структура
 
-- `main.dart` — bootstrap: init сповіщень, seed вбудованого нагадування, `UncontrolledProviderScope`.
-- `app.dart` — `MaterialApp`, тема (Material 3), локаль `uk`.
-- `models/weekdays.dart` — дні тижня як бітова маска (біт `weekday-1`, [DateTime.weekday]).
-- `database/database.dart` (+ `.g.dart`) — drift: таблиця `Reminders`, `AppDatabase`.
-- `data/reminders_repository.dart` — CRUD + синхронізація зі сповіщеннями.
-- `services/notification_service.dart` — `flutter_local_notifications` + `timezone`.
-- `providers.dart` — Riverpod: `databaseProvider`, `notificationServiceProvider`, `remindersRepositoryProvider`, `remindersProvider` (Stream).
-- `screens/` — `home_screen.dart`, `edit_reminder_screen.dart`.
+Актуальний перелік пакетів і дерево `lib/` — у [README.md](README.md).
+Обґрунтування ключових виборів:
 
-## Стек (зафіксовано 2026-08-30)
-
-- **Flutter (Dart)** — кросплатформа (Android + iOS).
-- **drift** — локальне сховище (поверх SQLite), реактивні стріми, типобезпечні запити, вбудовані міграції.
-- **Riverpod** — керування станом (compile-time safe, не залежить від `BuildContext`).
-- **flutter_local_notifications** — локальні сповіщення з розкладом по днях тижня.
-- **timezone** — коректний розрахунок часу спрацювання для zonedSchedule.
+- **drift** (замість `sqflite`) — реактивні стріми з БД, типобезпечні запити,
+  вбудовані міграції.
+- **Riverpod** (замість Provider) — compile-time safe, не залежить від `BuildContext`,
+  зручно тестувати.
+- **flutter_local_notifications** — `zonedSchedule` з `DateTimeComponents.dayOfWeekAndTime`
+  дає щотижневий повтор без ручного розрахунку наступного спрацювання.
+- **Озвучення як звук каналу** (не фоновий TTS) — систе­ма програє звук сповіщення
+  незалежно від обмежень фонових застосунків; єдиний надійний спосіб на агресивних
+  OEM (Motorola). Див. пункт «Option A» вище.
