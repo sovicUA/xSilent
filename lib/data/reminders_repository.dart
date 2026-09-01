@@ -45,9 +45,15 @@ class RemindersRepository {
   /// й переплановує сповіщення. Викликається на старті та після кожної зміни
   /// мови (виклики серіалізуються в `main`).
   Future<void> reconcile() async {
+    // Плагін і таймзони мають бути готові до першого `sync()` нижче (через
+    // `create()` чи `syncAll()`). `init()` також перестворює канали з
+    // локалізованими назвами — тож викликається й після зміни мови.
+    await _notifications.init();
+
     final existing = await _db.select(_db.reminders).get();
 
     if (existing.isEmpty) {
+      // `create()` сам викликає `sync()` для щойно створеного нагадування.
       await create(
         title: _l10n.builtInTitle,
         body: _l10n.builtInAnnouncement,
@@ -56,27 +62,26 @@ class RemindersRepository {
         weekdayMask: Weekdays.everyDay,
         isBuiltIn: true,
       );
-    } else {
-      for (final reminder in existing) {
-        if (!reminder.isBuiltIn) continue;
-        var patch = const RemindersCompanion();
-        if (_defaultTitles().contains(reminder.title)) {
-          patch = patch.copyWith(title: Value(_l10n.builtInTitle));
-        }
-        // Бекфіл тіла для баз зі старих схем + перелокалізація дефолтного тексту.
-        if (_normalize(reminder.body) == null ||
-            _defaultBodies().contains(reminder.body)) {
-          patch = patch.copyWith(body: Value(_l10n.builtInAnnouncement));
-        }
-        if (patch != const RemindersCompanion()) {
-          await (_db.update(_db.reminders)
-                ..where((t) => t.id.equals(reminder.id)))
-              .write(patch);
-        }
+      return;
+    }
+
+    for (final reminder in existing) {
+      if (!reminder.isBuiltIn) continue;
+      var patch = const RemindersCompanion();
+      if (_defaultTitles().contains(reminder.title)) {
+        patch = patch.copyWith(title: Value(_l10n.builtInTitle));
+      }
+      // Бекфіл тіла для баз зі старих схем + перелокалізація дефолтного тексту.
+      if (_normalize(reminder.body) == null ||
+          _defaultBodies().contains(reminder.body)) {
+        patch = patch.copyWith(body: Value(_l10n.builtInAnnouncement));
+      }
+      if (patch != const RemindersCompanion()) {
+        await (_db.update(_db.reminders)..where((t) => t.id.equals(reminder.id)))
+            .write(patch);
       }
     }
 
-    await _notifications.init();
     await _notifications.syncAll(await _db.select(_db.reminders).get());
   }
 

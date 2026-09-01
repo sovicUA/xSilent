@@ -138,7 +138,17 @@ class AnnouncementService {
       throw AnnouncementException('Файл мовлення не створено (немає TTS-рушія?)');
     }
 
-    final speech = readWav(await speechFile.readAsBytes());
+    final WavData speech;
+    try {
+      speech = readWav(await speechFile.readAsBytes());
+    } on FormatException catch (e) {
+      throw AnnouncementException('TTS повернув некоректний WAV: ${e.message}');
+    }
+    if (speech.channels != 1) {
+      throw AnnouncementException(
+        'TTS повернув не моно (${speech.channels} каналів)',
+      );
+    }
     final rate = speech.sampleRate;
 
     final gongWav = await _gong(gong);

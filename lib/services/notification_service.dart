@@ -144,7 +144,13 @@ class NotificationService {
     final android = _android;
     if (android != null) {
       final granted = await android.requestNotificationsPermission() ?? false;
-      await android.requestExactAlarmsPermission();
+      // Точні будильники надає декларація `USE_EXACT_ALARM` у маніфесті
+      // (застосунок-нагадування — дозволений кейс). Запит через систему
+      // потрібен лише як запасний варіант, коли її все ж немає — інакше
+      // `requestExactAlarmsPermission` кидало б у налаштування на кожен старт.
+      if (!(await android.canScheduleExactNotifications() ?? true)) {
+        await android.requestExactAlarmsPermission();
+      }
       return granted;
     }
 
@@ -229,7 +235,12 @@ class NotificationService {
     final payload = _encodePayload(reminder, channelId);
 
     for (final weekday in Weekdays.toWeekdays(reminder.weekdayMask)) {
-      final at = _nextInstanceOf(reminder.hour, reminder.minute, weekday);
+      final at = nextInstanceOf(
+        tz.TZDateTime.now(tz.local),
+        reminder.hour,
+        reminder.minute,
+        weekday,
+      );
       await _plugin.zonedSchedule(
         id: _notificationId(reminder.id, weekday),
         title: reminder.title,
@@ -400,15 +411,26 @@ class NotificationService {
     );
   }
 
-  tz.TZDateTime _nextInstanceOf(int hour, int minute, int weekday) {
-    final now = tz.TZDateTime.now(tz.local);
-    var scheduled =
-        tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
-    while (scheduled.weekday != weekday || !scheduled.isAfter(now)) {
-      scheduled = scheduled.add(const Duration(days: 1));
-    }
-    return scheduled;
+}
+
+/// Найближчий момент **строго після** [now], що збігається за днем тижня
+/// ([DateTime.weekday]: 1 = понеділок … 7 = неділя) та за годиною/хвилиною.
+///
+/// Винесено з класу для юніт-тестів (це логіка, яку реально використовує
+/// планувальник — не плутати з утилітами, що були в `utils/`).
+@visibleForTesting
+tz.TZDateTime nextInstanceOf(
+  tz.TZDateTime now,
+  int hour,
+  int minute,
+  int weekday,
+) {
+  var scheduled =
+      tz.TZDateTime(now.location, now.year, now.month, now.day, hour, minute);
+  while (scheduled.weekday != weekday || !scheduled.isAfter(now)) {
+    scheduled = scheduled.add(const Duration(days: 1));
   }
+  return scheduled;
 }
 
 /// Обробник натискання кнопок на банері сповіщення.
