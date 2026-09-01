@@ -46,5 +46,29 @@ void main() {
       final up = resamplePcmS16Mono(src, 24000, 48000);
       expect(up.length, closeTo(48000 * 2, 4));
     });
+
+    test('readWav відхиляє не-PCM і не-16-біт', () {
+      // Валідний PCM16 як база, далі патчимо поля fmt-чанку.
+      final base = buildWav(sampleRate: 24000, pcmS16le: Uint8List(64));
+      final fmtBody = 20; // 12 (RIFF/WAVE) + 8 (id+size 'fmt ')
+
+      Uint8List patched(int offset, int value) {
+        final copy = Uint8List.fromList(base);
+        ByteData.sublistView(copy).setUint16(offset, value, Endian.little);
+        return copy;
+      }
+
+      // audioFormat = 3 (IEEE float)
+      expect(() => readWav(patched(fmtBody, 3)), throwsFormatException);
+      // bitsPerSample = 8
+      expect(() => readWav(patched(fmtBody + 14, 8)), throwsFormatException);
+    });
+
+    test('readWav відхиляє не-WAV', () {
+      expect(
+        () => readWav(Uint8List.fromList('not a wav file at all'.codeUnits)),
+        throwsFormatException,
+      );
+    });
   });
 }

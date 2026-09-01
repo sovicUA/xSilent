@@ -110,6 +110,13 @@ WhatsApp/Signal через кнопку дії в сповіщенні — з'я
   - `_cancelNotifications` більше не скасовує pre/end сповіщення послідовності «хвилини мовчання» (`_preIdBase`/`_endIdBase` — глобальні id) під час `sync`/`purge` **власного** нагадування. Тепер приймає `isBuiltIn` і чіпає pre/end лише для вбудованого. Раніше будь-яка правка власного нагадування тихо вимикала попередження T−10 с і сигнал T+1 хв до наступного `reconcile()`.
   - Кнопка «Відкласти» у фоновому ізоляті: `snooze()` тепер викликає `initCore()` (виділено з `init()` — таймзони + `_plugin.initialize`, без чіпання каналів) перед `zonedSchedule`. Без цього плагін у фоновому ізоляті не мав контексту й перепланування тихо не відбувалося.
 
+- [x] **Середні знахідки код-рев'ю (2026-09-02, гілка `fix/review-medium-findings`).**
+  - `requestPermissions()`: `requestExactAlarmsPermission()` тепер лише за `!canScheduleExactNotifications()`. З `USE_EXACT_ALARM` у маніфесті це завжди `true`, тож виклик, що кидав у системні налаштування на кожному холодному старті, більше не спрацьовує.
+  - `main()`: прибрано окремий `await notificationService.init()` до `runApp` — bootstrap сповіщень повністю на першому (негайному) спрацюванні `container.listen(effectiveLocaleProvider)` → `reconcile()` → `init()`. Прибрано подвійну ініціалізацію плагіна на старті.
+  - `utils/next_occurrence.dart` видалено (мертвий код — планувальник використовував власний `_nextInstanceOf`). Логіку винесено в top-level `@visibleForTesting nextInstanceOf(now, hour, minute, weekday)` у `notification_service.dart`; тести — `test/notification_scheduling_test.dart` (перевіряють саме її). `test/widget_test.dart` розбито на `notification_scheduling_test.dart` + `weekdays_test.dart`.
+  - `readWav()` кидає `FormatException` для не-PCM / не-16-біт / порожнього `fmt`. `AnnouncementService._renderLocked` обгортає читання WAV від TTS → `AnnouncementException` (тож `sync` робить fallback на канал без озвучення, а не падає) і відхиляє не-моно вихід.
+  - Приватність озвучених WAV у спільному MediaStore — задокументовано в `README.md` (не міняємо: система інакше не прочитає звук каналу).
+
 ## Відкриті задачі
 
 - [ ] Живий тест 3-частинної послідовності «хвилини мовчання» на пристрої (заблокований екран).

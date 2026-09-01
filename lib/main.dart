@@ -29,13 +29,6 @@ Future<void> main() async {
     overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
   );
 
-  // Ініціалізація сповіщень не повинна блокувати запуск UI.
-  try {
-    await container.read(notificationServiceProvider).init();
-  } catch (error, stack) {
-    debugPrint('Помилка ініціалізації сповіщень: $error\n$stack');
-  }
-
   runApp(
     UncontrolledProviderScope(
       container: container,
@@ -43,9 +36,11 @@ Future<void> main() async {
     ),
   );
 
-  // Сід вбудованого нагадування + перелокалізація його тексту й перепланування
-  // сповіщень. Спрацьовує на старті та після кожної зміни фактичної мови
-  // (зокрема коли рушій уточнює локаль пристрою вже після запуску).
+  // Перше (негайне) спрацювання цього listener бере на себе весь bootstrap
+  // сповіщень: `reconcile()` робить `_notifications.init()` (канали, таймзони),
+  // сідить вбудоване нагадування та планує все. Далі — після кожної зміни
+  // фактичної мови. Ланцюжок серіалізує виклики, помилки логуються й не
+  // блокують UI (тому окремий `await init()` до `runApp` не потрібен).
   container.listen(
     effectiveLocaleProvider,
     (previous, next) => _scheduleReconcile(container),

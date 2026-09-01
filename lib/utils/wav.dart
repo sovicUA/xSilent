@@ -70,14 +70,30 @@ WavData readWav(Uint8List bytes) {
   var offset = 12;
   int sampleRate = 0;
   int channels = 1;
+  int audioFormat = 1;
+  int bitsPerSample = 16;
   while (offset + 8 <= bytes.lengthInBytes) {
     final id = String.fromCharCodes(bytes.sublist(offset, offset + 4));
     final size = bd.getUint32(offset + 4, Endian.little);
     final body = offset + 8;
     if (id == 'fmt ') {
+      audioFormat = bd.getUint16(body, Endian.little);
       channels = bd.getUint16(body + 2, Endian.little);
       sampleRate = bd.getUint32(body + 4, Endian.little);
+      bitsPerSample = bd.getUint16(body + 14, Endian.little);
     } else if (id == 'data') {
+      // Далі весь конвеєр (`Int16List.sublistView`, ресемплінг, склейка)
+      // припускає PCM signed-16 little-endian. Формати від TTS-рушіїв
+      // трапляються різні — відсікаємо тут із чітким повідомленням.
+      if (audioFormat != 1) {
+        throw FormatException('WAV не PCM (audioFormat=$audioFormat)');
+      }
+      if (bitsPerSample != 16) {
+        throw FormatException('WAV не 16-біт (bitsPerSample=$bitsPerSample)');
+      }
+      if (sampleRate <= 0) {
+        throw const FormatException('У WAV немає коректного fmt-чанку');
+      }
       final end = math.min(body + size, bytes.lengthInBytes);
       return WavData(
         sampleRate: sampleRate,
