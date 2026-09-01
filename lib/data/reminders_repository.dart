@@ -144,6 +144,6 @@ class RemindersRepository {
   Future<void> delete(Reminder reminder) async {
     await (_db.delete(_db.reminders)..where((t) => t.id.equals(reminder.id)))
         .go();
-    await _notifications.purge(reminder.id);
+    await _notifications.purge(reminder.id, isBuiltIn: reminder.isBuiltIn);
   }
 }

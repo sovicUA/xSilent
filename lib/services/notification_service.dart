@@ -97,7 +97,10 @@ class NotificationService {
         sound: const RawResourceAndroidNotificationSound('main_gong'),
       );
 
-  Future<void> init() async {
+  /// Мінімальна ініціалізація, потрібна й у фоновому ізоляті (кнопка
+  /// «Відкласти»): таймзони + сам плагін. Канали тут не чіпаємо — їх створює
+  /// застосунок на передньому плані у [init].
+  Future<void> _initCore() async {
     tz_data.initializeTimeZones();
     final localZone = await FlutterTimezone.getLocalTimezone();
     tz.setLocalLocation(tz.getLocation(localZone.identifier));
@@ -113,6 +116,10 @@ class NotificationService {
       onDidReceiveNotificationResponse: notificationActionCallback,
       onDidReceiveBackgroundNotificationResponse: notificationActionCallback,
     );
+  }
+
+  Future<void> init() async {
+    await _initCore();
 
     final android0 = _android;
     if (android0 != null) {
@@ -152,7 +159,7 @@ class NotificationService {
 
   /// Приводить заплановані сповіщення нагадування у відповідність до його стану.
   Future<void> sync(Reminder reminder) async {
-    await _cancelNotifications(reminder.id);
+    await _cancelNotifications(reminder.id, isBuiltIn: reminder.isBuiltIn);
 
     if (!reminder.enabled) {
       await _purgeSpoken(reminder.id);
@@ -287,17 +294,26 @@ class NotificationService {
       ];
 
   /// Повністю прибирає нагадування: сповіщення, канали озвучення, аудіофайли.
-  Future<void> purge(int reminderId) async {
-    await _cancelNotifications(reminderId);
+  Future<void> purge(int reminderId, {bool isBuiltIn = false}) async {
+    await _cancelNotifications(reminderId, isBuiltIn: isBuiltIn);
     await _purgeSpoken(reminderId);
   }
 
-  Future<void> _cancelNotifications(int reminderId) async {
+  /// Скасовує заплановані сповіщення нагадування. Сповіщення послідовності
+  /// «хвилини мовчання» (pre/end) мають глобальні id, тож чіпаємо їх лише для
+  /// вбудованого нагадування — інакше синхронізація будь-якого власного
+  /// нагадування скасувала б попередження й сигнал завершення.
+  Future<void> _cancelNotifications(
+    int reminderId, {
+    required bool isBuiltIn,
+  }) async {
     await _plugin.cancel(id: snoozeNotificationId(reminderId));
     for (var weekday = 1; weekday <= 7; weekday++) {
       await _plugin.cancel(id: _notificationId(reminderId, weekday));
-      await _plugin.cancel(id: _preIdBase + weekday);
-      await _plugin.cancel(id: _endIdBase + weekday);
+      if (isBuiltIn) {
+        await _plugin.cancel(id: _preIdBase + weekday);
+        await _plugin.cancel(id: _endIdBase + weekday);
+      }
     }
   }
 
@@ -354,6 +370,10 @@ class NotificationService {
       });
 
   /// Переносить нагадування на [snoozeDelay]: показує те саме сповіщення знову.
+  ///
+  /// Викликається з фонового ізоляту (обробник кнопки банера), тож спершу
+  /// ініціалізує плагін і таймзони — інакше [FlutterLocalNotificationsPlugin]
+  /// не має контексту й [zonedSchedule] тихо нічого не робить.
   Future<void> snooze(Map<String, dynamic> payload) async {
     final id = payload['id'] as int?;
     if (id == null) return;
@@ -363,9 +383,7 @@ class NotificationService {
     final channelId = (payload['channel'] as String?) ??
         (isBuiltIn ? silenceChannelId : customChannelId);
 
-    tz_data.initializeTimeZones();
-    final zone = await FlutterTimezone.getLocalTimezone();
-    tz.setLocalLocation(tz.getLocation(zone.identifier));
+    await _initCore();
 
     await _plugin.zonedSchedule(
       id: snoozeNotificationId(id),
