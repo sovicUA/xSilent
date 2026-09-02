@@ -1,0 +1,12 @@
+# Скопіюй у android/key.properties і заповни власними значеннями.
+# android/key.properties у .gitignore — НЕ комітити.
+#
+# Згенерувати upload-keystore (один раз, зберегти резервну копію поза репозиторієм):
+#   keytool -genkey -v -keystore android/app/upload-keystore.jks \
+#     -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+#
+storePassword=CHANGE_ME
+keyPassword=CHANGE_ME
+keyAlias=upload
+# Шлях відносно android/app/
+storeFile=upload-keystore.jks

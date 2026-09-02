@@ -49,6 +49,12 @@ flutter run                          # потрібен Android/iOS пристр
 Після зміни таблиць у `lib/database/database.dart` перезапустити `build_runner`
 (або тримати `dart run build_runner watch`).
 
+### Реліз
+
+Підпис, збірка AAB і публікація на Google Play — [`store/README.md`](store/README.md).
+CI (`.github/workflows/`): `ci.yml` — analyze + test + збірка на кожен push/PR;
+`release.yml` — тег `v*` збирає підписаний AAB і заливає на трек `internal`.
+
 ## Структура
 
 ```

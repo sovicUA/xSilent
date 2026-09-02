@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Політика приватності — Хвилина мовчання</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f7f7f5;
+    --fg: #1e2329;
+    --muted: #5b6570;
+    --rule: #e2e2dd;
+    --accent: #3f5c78;
+    --card: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14181c;
+      --fg: #e6e8ea;
+      --muted: #9aa4ae;
+      --rule: #2a3138;
+      --accent: #9db8d2;
+      --card: #1b2026;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  main {
+    max-width: 42rem;
+    margin: 0 auto;
+    padding: 2.5rem 1.25rem 4rem;
+  }
+  h1 { font-size: 1.7rem; line-height: 1.25; margin: 0 0 .25rem; }
+  h2 {
+    font-size: 1.25rem;
+    margin: 2.5rem 0 .75rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule);
+  }
+  h3 { font-size: 1.02rem; margin: 1.5rem 0 .4rem; }
+  a { color: var(--accent); }
+  .meta { color: var(--muted); font-size: .9rem; margin-bottom: 2rem; }
+  .lede {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: .6rem;
+    padding: 1rem 1.15rem;
+  }
+  ul { padding-left: 1.2rem; }
+  li { margin: .35rem 0; }
+  code {
+    font: .875em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    padding: .1em .35em;
+    border-radius: .3em;
+  }
+  .lang-switch { font-size: .9rem; color: var(--muted); }
+  footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+  <p class="lang-switch"><a href="#uk">Українською</a> · <a href="#en">English</a></p>
+
+  <section id="uk">
+    <h1>Політика приватності</h1>
+    <p class="meta">Застосунок «Хвилина мовчання» (<code>ua.org.sovic.xsilent</code>) · Чинна від 2&nbsp;вересня 2026&nbsp;р.</p>
+
+    <p class="lede">Застосунок працює повністю на пристрої й офлайн. Ми <strong>не збираємо</strong>,
+    не зберігаємо на серверах і не передаємо нікому жодних персональних даних. Немає реклами,
+    аналітики та сторонніх трекерів. Застосунок не звертається до мережі.</p>
+
+    <h3>Які дані обробляються</h3>
+    <ul>
+      <li><strong>Ваші нагадування</strong> (час, дні тижня, назва, текст, налаштування озвучення)
+      зберігаються в локальній базі даних на вашому пристрої й не залишають його.</li>
+      <li><strong>Аудіофайли озвучення.</strong> Текст нагадування синтезується у звуковий файл
+      і зберігається у спільній теці пристрою <code>Notifications/xSilent</code> — інакше система
+      не змогла&nbsp;б відтворити його як звук сповіщення. Файлами керує лише застосунок; вони
+      видаляються при зміні тексту чи гучності та при видаленні нагадування. Через те, що тека
+      спільна, інші застосунки з дозволом на доступ до медіа-аудіо технічно можуть прочитати ці
+      файли, тому не вводьте конфіденційний текст у поле озвучення.</li>
+      <li><strong>Налаштування</strong> (мова інтерфейсу) зберігаються локально.</li>
+    </ul>
+
+    <h3>Дозволи</h3>
+    <ul>
+      <li><strong>Сповіщення</strong> — щоб показувати нагадування.</li>
+      <li><strong>Точні будильники</strong> (<code>SCHEDULE_EXACT_ALARM</code> / <code>USE_EXACT_ALARM</code>)
+      — щоб нагадування спрацьовувало точно о заданому часі.</li>
+      <li><strong>Запуск після перезавантаження</strong> (<code>RECEIVE_BOOT_COMPLETED</code>)
+      — щоб відновити заплановані нагадування після ввімкнення пристрою.</li>
+      <li><strong>Вібрація.</strong></li>
+      <li><strong>Синтез мовлення</strong> — використовується рушій TTS, встановлений на пристрої;
+      текст для синтезу не надсилається розробнику застосунку.</li>
+    </ul>
+
+    <h3>Діти</h3>
+    <p>Застосунок не орієнтований на дітей і не збирає жодних даних від будь-кого.</p>
+
+    <h3>Зміни</h3>
+    <p>Про зміни цієї політики буде повідомлено оновленням цієї сторінки та дати «Чинна від».</p>
+
+    <h3>Контакт</h3>
+    <p>Питання щодо приватності: <a href="mailto:v.sytnyk@sovic.org.ua">v.sytnyk@sovic.org.ua</a></p>
+  </section>
+
+  <section id="en">
+    <h2>Privacy Policy (English)</h2>
+    <p class="meta">"Moment of Silence" app (<code>ua.org.sovic.xsilent</code>) · Effective 2&nbsp;September&nbsp;2026</p>
+
+    <p class="lede">The app runs entirely on your device and offline. We <strong>do not collect</strong>,
+    store on any server, or share with anyone any personal data. There are no ads, no analytics, and
+    no third-party trackers. The app makes no network requests.</p>
+
+    <h3>What data is processed</h3>
+    <ul>
+      <li><strong>Your reminders</strong> (time, weekdays, title, text, announcement settings) are
+      stored in a local database on your device and never leave it.</li>
+      <li><strong>Announcement audio files.</strong> A reminder's text is synthesised into a sound
+      file stored in the device's shared <code>Notifications/xSilent</code> folder — otherwise the
+      system could not play it as a notification sound. Only the app manages these files; they are
+      deleted when the text or volume changes and when a reminder is deleted. Because the folder is
+      shared, other apps holding media audio permission can technically read these files, so do not
+      enter confidential text in the announcement field.</li>
+      <li><strong>Settings</strong> (interface language) are stored locally.</li>
+    </ul>
+
+    <h3>Permissions</h3>
+    <ul>
+      <li><strong>Notifications</strong> — to show reminders.</li>
+      <li><strong>Exact alarms</strong> (<code>SCHEDULE_EXACT_ALARM</code> / <code>USE_EXACT_ALARM</code>)
+      — so a reminder fires at exactly the scheduled time.</li>
+      <li><strong>Run at startup</strong> (<code>RECEIVE_BOOT_COMPLETED</code>) — to restore scheduled
+      reminders after the device boots.</li>
+      <li><strong>Vibration.</strong></li>
+      <li><strong>Text-to-speech</strong> — the app uses the device's installed TTS engine; the text
+      to synthesise is not sent to the app's developer.</li>
+    </ul>
+
+    <h3>Children</h3>
+    <p>The app is not directed at children and collects no data from anyone.</p>
+
+    <h3>Changes</h3>
+    <p>Any changes to this policy will be announced by updating this page and the "Effective" date.</p>
+
+    <h3>Contact</h3>
+    <p>Privacy questions: <a href="mailto:v.sytnyk@sovic.org.ua">v.sytnyk@sovic.org.ua</a></p>
+  </section>
+
+  <footer>
+    <a href="https://github.com/sovicUA/xSilent">github.com/sovicUA/xSilent</a>
+  </footer>
+</main>
+</body>
+</html>

@@ -119,15 +119,50 @@ WhatsApp/Signal через кнопку дії в сповіщенні — з'я
 
 - [x] **Time picker: ввід з клавіатури за замовчуванням (2026-09-02).** Розслідування «нагадування зберігається з часом 0:00»: код (`_pickTime` → `setState(_time = picked)`, `_save` → `_time.hour/minute`) і Flutter `showTimePicker` коректні — відтворено на Motorola, точні тапи по циферблату дають правильний час у БД. Причина попереднього 0:00 — неточне перетягування 24-годинного циферблата (`00` зверху по центру). `_pickTime` тепер відкриває пікер із `initialEntryMode: TimePickerEntryMode.input` (кнопка перемикання на циферблат лишається).
 
+- [x] **Підготовка до Play Store — репозиторій (2026-09-02).**
+  - **Release signing.** `android/app/build.gradle.kts` читає `android/key.properties`
+    (не в git); є `signingConfigs.release` лише коли файл існує, інакше release
+    підписується debug-ключем (щоб `flutter run --release` і збірка на CI/чужій
+    машині не падали). Шаблон — `android/key.properties.example`; keystore
+    генерує власник (`keytool ... upload-keystore.jks`, alias `upload`).
+  - **Локалізована назва застосунку.** `android:label="@string/app_name"`;
+    `res/values/strings.xml` (укр) + `res/values-en/strings.xml` («Moment of
+    Silence»). У самому Flutter-UI назва вже через `l10n`.
+  - **`USE_EXACT_ALARM` лишаємо** (застосунок-нагадування — дозволений кейс);
+    у Play Console треба заповнити декларацію «Use of exact alarms»
+    (обґрунтування — у `store/listing-*.md`).
+  - **Тексти лістингу** — `store/listing-uk.md`, `store/listing-en.md` (назва,
+    короткий/повний опис, дані для Data safety, категорія, декларація exact-alarm).
+  - **Політика приватності** — `store/privacy-policy.md` (джерело) →
+    `docs/privacy-policy/index.html` (двомовна). Публікується через GitHub Pages
+    (`main` / `/docs`), URL `https://sovicua.github.io/xSilent/privacy-policy/`.
+    Ключове: застосунок офлайн, нічого не збирає/не передає.
+  - **Чек-лист усіх кроків Play Console** — `store/README.md`. ❗ Ще потрібно:
+    feature graphic 1024×500 і 2–8 скріншотів телефона.
+- [x] **CI — GitHub Actions (2026-09-02).**
+  - `.github/workflows/ci.yml` (push у `main` + PR): job `analyze-test` — `pub get`,
+    перевірка що згенеровані файли (`lib/database`, `lib/l10n`) актуальні
+    (`build_runner` + `gen-l10n` + `git diff --exit-code`), `flutter analyze`,
+    `flutter test`; job `build` — `flutter build appbundle` (без секретів →
+    debug-ключ, лише перевірка компіляції) + артефакт. Flutter піниться через
+    `env.FLUTTER_VERSION` (3.47.2).
+  - `.github/workflows/release.yml` (тег `v*`): відновлює keystore+`key.properties`
+    із секретів (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_PASSWORD`,
+    `KEY_ALIAS`), збирає підписаний AAB, `r0adkll/upload-google-play` → трек
+    `internal`, `softprops/action-gh-release`. Перший AAB — вручну в Console.
+    Перед тегом підняти `version:` у `pubspec.yaml`.
+  - Формат-чек (`dart format`) у CI **не додано**: новий Dart-форматер 3.x
+    переписав би ~13 файлів — це окрема задача, не блокер.
+
 ## Відкриті задачі
 
 - [ ] Живий тест 3-частинної послідовності «хвилини мовчання» на пристрої (заблокований екран).
-- [ ] Реальні скріншоти застосунку для лістингу Play Store.
+- [ ] Play Store: feature graphic 1024×500 + 2–8 скріншотів телефона (укр/англ).
+- [ ] Play Store: створити застосунок у Console, залити перший AAB вручну, заповнити App content.
+- [ ] CI-автопублікація: service account у Google Cloud + секрет `PLAY_SERVICE_ACCOUNT_JSON`.
 - [ ] iOS: збірка/тест; фонове озвучення через `Library/Sounds/` (модель даних уже кросплатформна).
-- [ ] Release signing config (зараз release підписується debug-ключем; акаунт розробника ще на верифікації).
 - [ ] Більше тестів (`NotificationService`, `AnnouncementService`, репозиторій, віджети).
 - [ ] Міграція `flutter_timezone` на Built-in Kotlin (попередження при збірці) або заміна пакета.
-- [ ] CI (`.github/workflows`): analyze + test + збірка.
 - [ ] Вирішити, чи повертати можливість дублювання нагадувань у месенджери (раніше прибрано).
 
 ## Стек і структура
