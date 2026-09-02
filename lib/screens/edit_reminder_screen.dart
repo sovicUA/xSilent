@@ -77,7 +77,14 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
   }
 
   Future<void> _pickTime() async {
-    final picked = await showTimePicker(context: context, initialTime: _time);
+    // Клавіатурний ввід за замовчуванням: на 24-годинному циферблаті `00`
+    // стоїть зверху по центру, тож перетягуванням легко промахнутися на 0:00.
+    // Кнопка перемикання на циферблат у діалозі лишається.
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _time,
+      initialEntryMode: TimePickerEntryMode.input,
+    );
     if (picked != null) {
       setState(() => _time = picked);
     }
