@@ -60,6 +60,8 @@ class RemindersRepository {
         hour: 9,
         minute: 0,
         weekdayMask: Weekdays.everyDay,
+        preNotify: true,
+        preLeadSeconds: 10,
         isBuiltIn: true,
       );
       return;
@@ -99,6 +101,8 @@ class RemindersRepository {
     bool speakAloud = true,
     double announcementVolume = 1.0,
     bool tickDuringSilence = false,
+    bool preNotify = false,
+    int preLeadSeconds = 10,
     bool isBuiltIn = false,
   }) async {
     final reminder = await _db.into(_db.reminders).insertReturning(
@@ -111,6 +115,8 @@ class RemindersRepository {
             speakAloud: Value(speakAloud),
             announcementVolume: Value(announcementVolume),
             tickDuringSilence: Value(tickDuringSilence),
+            preNotify: Value(preNotify),
+            preLeadSeconds: Value(preLeadSeconds),
             isBuiltIn: Value(isBuiltIn),
           ),
         );
@@ -128,6 +134,8 @@ class RemindersRepository {
     required bool speakAloud,
     required double announcementVolume,
     required bool tickDuringSilence,
+    required bool preNotify,
+    required int preLeadSeconds,
   }) async {
     final updated = reminder.copyWith(
       title: title,
@@ -138,6 +146,8 @@ class RemindersRepository {
       speakAloud: speakAloud,
       announcementVolume: announcementVolume,
       tickDuringSilence: tickDuringSilence,
+      preNotify: preNotify,
+      preLeadSeconds: preLeadSeconds,
     );
     await _db.update(_db.reminders).replace(updated);
     await _notifications.sync(updated);

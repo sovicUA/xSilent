@@ -43,6 +43,8 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
   late bool _speakAloudTouched;
   late double _volume;
   late bool _tickDuringSilence;
+  late bool _preNotify;
+  late int _preLeadSeconds;
 
   bool _previewBusy = false;
   bool _titleDefaultApplied = false;
@@ -61,6 +63,8 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
     _speakAloudTouched = reminder != null;
     _volume = reminder?.announcementVolume ?? 1.0;
     _tickDuringSilence = reminder?.tickDuringSilence ?? false;
+    _preNotify = reminder?.preNotify ?? false;
+    _preLeadSeconds = reminder?.preLeadSeconds ?? 10;
   }
 
   bool get _isBuiltIn => widget.reminder?.isBuiltIn ?? false;
@@ -168,6 +172,8 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
         speakAloud: _speakAloudEffective,
         announcementVolume: _volume,
         tickDuringSilence: _isBuiltIn && _tickDuringSilence,
+        preNotify: _preNotify,
+        preLeadSeconds: _preLeadSeconds,
       );
     } else {
       await repository.update(
@@ -180,6 +186,8 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
         speakAloud: _speakAloudEffective,
         announcementVolume: _volume,
         tickDuringSilence: _isBuiltIn && _tickDuringSilence,
+        preNotify: _preNotify,
+        preLeadSeconds: _preLeadSeconds,
       );
     }
     if (mounted) Navigator.of(context).pop();
@@ -308,6 +316,39 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
               value: _tickDuringSilence,
               onChanged: (value) =>
                   setState(() => _tickDuringSilence = value),
+            ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            secondary: const Icon(Icons.notifications_active_outlined),
+            title: Text(l10n.preSignalSwitchTitle),
+            subtitle: Text(l10n.preSignalSwitchHint),
+            value: _preNotify,
+            onChanged: (value) => setState(() => _preNotify = value),
+          ),
+          if (_preNotify)
+            Padding(
+              padding: const EdgeInsets.only(left: 4, bottom: 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Slider(
+                    value: _preLeadSeconds.toDouble(),
+                    min: 5,
+                    max: 60,
+                    divisions: 11,
+                    label: l10n.preLeadLabel(_preLeadSeconds),
+                    onChanged: (v) =>
+                        setState(() => _preLeadSeconds = v.round()),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 20),
+                    child: Text(
+                      l10n.preLeadLabel(_preLeadSeconds),
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
             ),
           const SizedBox(height: 16),
           Text(l10n.repeatTitle, style: theme.textTheme.titleMedium),

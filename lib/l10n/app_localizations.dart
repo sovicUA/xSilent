@@ -241,6 +241,24 @@ abstract class L10n {
   /// **'Тихе цокання щосекунди — від оголошення до сигналу завершення'**
   String get tickSwitchHint;
 
+  /// No description provided for @preSignalSwitchTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Попередній сигнал'**
+  String get preSignalSwitchTitle;
+
+  /// No description provided for @preSignalSwitchHint.
+  ///
+  /// In uk, this message translates to:
+  /// **'Гонг за кілька секунд до нагадування'**
+  String get preSignalSwitchHint;
+
+  /// No description provided for @preLeadLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'За {seconds} с до нагадування'**
+  String preLeadLabel(int seconds);
+
   /// No description provided for @repeatTitle.
   ///
   /// In uk, this message translates to:
@@ -346,13 +364,13 @@ abstract class L10n {
   /// No description provided for @chanPreName.
   ///
   /// In uk, this message translates to:
-  /// **'Хвилина мовчання — попередження'**
+  /// **'Попередній сигнал'**
   String get chanPreName;
 
   /// No description provided for @chanPreDesc.
   ///
   /// In uk, this message translates to:
-  /// **'Сповіщення за 10 секунд до хвилини мовчання'**
+  /// **'Гонг незадовго до спрацювання нагадування'**
   String get chanPreDesc;
 
   /// No description provided for @chanEndName.

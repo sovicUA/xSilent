@@ -40,6 +40,13 @@ class Reminders extends Table {
   BoolColumn get tickDuringSilence =>
       boolean().withDefault(const Constant(false))();
 
+  /// Чи давати попередній сигнал (гонг) за [preLeadSeconds] до спрацювання.
+  /// За замовчуванням вимкнено; для вбудованого нагадування вмикається явно.
+  BoolColumn get preNotify => boolean().withDefault(const Constant(false))();
+
+  /// За скільки секунд до нагадування давати попередній сигнал (5–60, крок 5).
+  IntColumn get preLeadSeconds => integer().withDefault(const Constant(10))();
+
   BoolColumn get isBuiltIn => boolean().withDefault(const Constant(false))();
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
@@ -51,7 +58,7 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'xsilent'));
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -67,6 +74,15 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 5) {
             await m.addColumn(reminders, reminders.tickDuringSilence);
+          }
+          if (from < 6) {
+            await m.addColumn(reminders, reminders.preNotify);
+            await m.addColumn(reminders, reminders.preLeadSeconds);
+            // Наявне вбудоване нагадування досі мало жорстко зашитий
+            // попередній сигнал за 10 с — зберігаємо цю поведінку.
+            await customStatement(
+              'UPDATE reminders SET pre_notify = 1 WHERE is_built_in = 1',
+            );
           }
         },
       );

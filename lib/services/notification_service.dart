@@ -44,7 +44,7 @@ class NotificationService {
   static const String _spokenGroupId = 'spoken_group';
   static const String silenceChannelId = 'moment_of_silence_v3';
   static const String customChannelId = 'custom_reminders_v3';
-  static const String mosPreChannelId = 'mos_pre_v2';
+  static const String preChannelId = 'pre_signal_v1';
   static const String mosEndChannelId = 'mos_end_v2';
 
   /// Канали зі старих версій застосунку — видаляє [sweepLegacyChannels].
@@ -59,6 +59,7 @@ class NotificationService {
     'moment_of_silence_v2',
     'custom_reminders_v2',
     'mos_pre',
+    'mos_pre_v2', // → загальний pre_signal_v1
     'mos_end',
   ];
 
@@ -69,8 +70,15 @@ class NotificationService {
   static const String actionSnoozeId = 'snooze';
 
   static const Duration snoozeDelay = Duration(minutes: 5);
-  static const Duration _preLead = Duration(seconds: 10);
   static const Duration _silenceLength = Duration(minutes: 1);
+
+  /// Попередній сигнал — окремий id на кожне нагадування×день.
+  static int _preId(int reminderId, int weekday) =>
+      10000000 + reminderId * 8 + weekday;
+
+  /// Глобальні id попереднього/кінцевого сигналу зі старих версій (лише
+  /// вбудоване). Кінцевий сигнал досі на [_endIdBase]; попередній переїхав на
+  /// [_preId], тож [_preIdBase] чистимо як спадок.
   static const int _preIdBase = 8000000;
   static const int _endIdBase = 8100000;
 
@@ -100,8 +108,8 @@ class NotificationService {
         audioAttributesUsage: _audioUsage,
       );
 
-  AndroidNotificationChannel get _mosPreChannel => AndroidNotificationChannel(
-        mosPreChannelId,
+  AndroidNotificationChannel get _preChannel => AndroidNotificationChannel(
+        preChannelId,
         l10n.chanPreName,
         description: l10n.chanPreDesc,
         importance: Importance.max,
@@ -150,7 +158,7 @@ class NotificationService {
       for (final ch in [
         _silenceChannel,
         _customChannel,
-        _mosPreChannel,
+        _preChannel,
         _mosEndChannel,
       ]) {
         await android0.createNotificationChannel(ch);
@@ -298,14 +306,15 @@ class NotificationService {
         payload: payload,
       );
 
-      if (reminder.isBuiltIn) {
+      if (reminder.preNotify) {
+        final lead = Duration(seconds: reminder.preLeadSeconds.clamp(5, 60));
         await _plugin.zonedSchedule(
-          id: _preIdBase + weekday,
-          title: l10n.preNotifTitle,
+          id: _preId(reminder.id, weekday),
+          title: reminder.isBuiltIn ? l10n.preNotifTitle : reminder.title,
           body: null,
-          scheduledDate: at.subtract(_preLead),
+          scheduledDate: at.subtract(lead),
           notificationDetails: _detailsFor(
-            channelId: mosPreChannelId,
+            channelId: preChannelId,
             channelName: l10n.chanPreName,
             actions: [
               AndroidNotificationAction(actionOkId, l10n.actionOk,
@@ -315,6 +324,9 @@ class NotificationService {
           androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
           matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
         );
+      }
+
+      if (reminder.isBuiltIn) {
         await _plugin.zonedSchedule(
           id: _endIdBase + weekday,
           title: l10n.endNotifTitle,
@@ -356,10 +368,9 @@ class NotificationService {
     await _purgeSpoken(reminderId);
   }
 
-  /// Скасовує заплановані сповіщення нагадування. Сповіщення послідовності
-  /// «хвилини мовчання» (pre/end) мають глобальні id, тож чіпаємо їх лише для
-  /// вбудованого нагадування — інакше синхронізація будь-якого власного
-  /// нагадування скасувала б попередження й сигнал завершення.
+  /// Скасовує заплановані сповіщення нагадування: основне, попередній сигнал
+  /// (окремий id на нагадування) і — лише для вбудованого — сигнал завершення
+  /// хвилини мовчання. Плюс спадкові глобальні id попереднього сигналу.
   Future<void> _cancelNotifications(
     int reminderId, {
     required bool isBuiltIn,
@@ -367,8 +378,9 @@ class NotificationService {
     await _plugin.cancel(id: snoozeNotificationId(reminderId));
     for (var weekday = 1; weekday <= 7; weekday++) {
       await _plugin.cancel(id: _notificationId(reminderId, weekday));
+      await _plugin.cancel(id: _preId(reminderId, weekday));
       if (isBuiltIn) {
-        await _plugin.cancel(id: _preIdBase + weekday);
+        await _plugin.cancel(id: _preIdBase + weekday); // спадок
         await _plugin.cancel(id: _endIdBase + weekday);
       }
     }

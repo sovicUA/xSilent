@@ -88,6 +88,17 @@ class L10nEn extends L10n {
       'A quiet tick every second — from the announcement to the end cue';
 
   @override
+  String get preSignalSwitchTitle => 'Advance signal';
+
+  @override
+  String get preSignalSwitchHint => 'A gong a few seconds before the reminder';
+
+  @override
+  String preLeadLabel(int seconds) {
+    return '$seconds s before the reminder';
+  }
+
+  @override
   String get repeatTitle => 'Repeat';
 
   @override
@@ -147,11 +158,10 @@ class L10nEn extends L10n {
   String get chanCustomDesc => 'Reminders you added yourself';
 
   @override
-  String get chanPreName => 'Moment of Silence — heads-up';
+  String get chanPreName => 'Advance signal';
 
   @override
-  String get chanPreDesc =>
-      'Notification 10 seconds before the moment of silence';
+  String get chanPreDesc => 'A gong shortly before a reminder fires';
 
   @override
   String get chanEndName => 'Moment of Silence — end';

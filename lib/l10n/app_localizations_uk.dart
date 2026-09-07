@@ -89,6 +89,17 @@ class L10nUk extends L10n {
       'Тихе цокання щосекунди — від оголошення до сигналу завершення';
 
   @override
+  String get preSignalSwitchTitle => 'Попередній сигнал';
+
+  @override
+  String get preSignalSwitchHint => 'Гонг за кілька секунд до нагадування';
+
+  @override
+  String preLeadLabel(int seconds) {
+    return 'За $seconds с до нагадування';
+  }
+
+  @override
   String get repeatTitle => 'Повторювати';
 
   @override
@@ -148,10 +159,10 @@ class L10nUk extends L10n {
   String get chanCustomDesc => 'Нагадування, які ви додали самостійно';
 
   @override
-  String get chanPreName => 'Хвилина мовчання — попередження';
+  String get chanPreName => 'Попередній сигнал';
 
   @override
-  String get chanPreDesc => 'Сповіщення за 10 секунд до хвилини мовчання';
+  String get chanPreDesc => 'Гонг незадовго до спрацювання нагадування';
 
   @override
   String get chanEndName => 'Хвилина мовчання — завершення';

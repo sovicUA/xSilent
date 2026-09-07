@@ -131,6 +131,33 @@ class $RemindersTable extends Reminders
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _preNotifyMeta = const VerificationMeta(
+    'preNotify',
+  );
+  @override
+  late final GeneratedColumn<bool> preNotify = GeneratedColumn<bool>(
+    'pre_notify',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("pre_notify" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _preLeadSecondsMeta = const VerificationMeta(
+    'preLeadSeconds',
+  );
+  @override
+  late final GeneratedColumn<int> preLeadSeconds = GeneratedColumn<int>(
+    'pre_lead_seconds',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(10),
+  );
   static const VerificationMeta _isBuiltInMeta = const VerificationMeta(
     'isBuiltIn',
   );
@@ -170,6 +197,8 @@ class $RemindersTable extends Reminders
     speakAloud,
     announcementVolume,
     tickDuringSilence,
+    preNotify,
+    preLeadSeconds,
     isBuiltIn,
     createdAt,
   ];
@@ -257,6 +286,21 @@ class $RemindersTable extends Reminders
         ),
       );
     }
+    if (data.containsKey('pre_notify')) {
+      context.handle(
+        _preNotifyMeta,
+        preNotify.isAcceptableOrUnknown(data['pre_notify']!, _preNotifyMeta),
+      );
+    }
+    if (data.containsKey('pre_lead_seconds')) {
+      context.handle(
+        _preLeadSecondsMeta,
+        preLeadSeconds.isAcceptableOrUnknown(
+          data['pre_lead_seconds']!,
+          _preLeadSecondsMeta,
+        ),
+      );
+    }
     if (data.containsKey('is_built_in')) {
       context.handle(
         _isBuiltInMeta,
@@ -318,6 +362,14 @@ class $RemindersTable extends Reminders
         DriftSqlType.bool,
         data['${effectivePrefix}tick_during_silence'],
       )!,
+      preNotify: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}pre_notify'],
+      )!,
+      preLeadSeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}pre_lead_seconds'],
+      )!,
       isBuiltIn: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_built_in'],
@@ -361,6 +413,13 @@ class Reminder extends DataClass implements Insertable<Reminder> {
   /// Лише для вбудованого нагадування: чи програвати цокання метронома
   /// протягом хвилини мовчання (вбудовується у звук каналу оголошення).
   final bool tickDuringSilence;
+
+  /// Чи давати попередній сигнал (гонг) за [preLeadSeconds] до спрацювання.
+  /// За замовчуванням вимкнено; для вбудованого нагадування вмикається явно.
+  final bool preNotify;
+
+  /// За скільки секунд до нагадування давати попередній сигнал (5–60, крок 5).
+  final int preLeadSeconds;
   final bool isBuiltIn;
   final DateTime createdAt;
   const Reminder({
@@ -374,6 +433,8 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     required this.speakAloud,
     required this.announcementVolume,
     required this.tickDuringSilence,
+    required this.preNotify,
+    required this.preLeadSeconds,
     required this.isBuiltIn,
     required this.createdAt,
   });
@@ -392,6 +453,8 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     map['speak_aloud'] = Variable<bool>(speakAloud);
     map['announcement_volume'] = Variable<double>(announcementVolume);
     map['tick_during_silence'] = Variable<bool>(tickDuringSilence);
+    map['pre_notify'] = Variable<bool>(preNotify);
+    map['pre_lead_seconds'] = Variable<int>(preLeadSeconds);
     map['is_built_in'] = Variable<bool>(isBuiltIn);
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
@@ -409,6 +472,8 @@ class Reminder extends DataClass implements Insertable<Reminder> {
       speakAloud: Value(speakAloud),
       announcementVolume: Value(announcementVolume),
       tickDuringSilence: Value(tickDuringSilence),
+      preNotify: Value(preNotify),
+      preLeadSeconds: Value(preLeadSeconds),
       isBuiltIn: Value(isBuiltIn),
       createdAt: Value(createdAt),
     );
@@ -432,6 +497,8 @@ class Reminder extends DataClass implements Insertable<Reminder> {
         json['announcementVolume'],
       ),
       tickDuringSilence: serializer.fromJson<bool>(json['tickDuringSilence']),
+      preNotify: serializer.fromJson<bool>(json['preNotify']),
+      preLeadSeconds: serializer.fromJson<int>(json['preLeadSeconds']),
       isBuiltIn: serializer.fromJson<bool>(json['isBuiltIn']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
@@ -450,6 +517,8 @@ class Reminder extends DataClass implements Insertable<Reminder> {
       'speakAloud': serializer.toJson<bool>(speakAloud),
       'announcementVolume': serializer.toJson<double>(announcementVolume),
       'tickDuringSilence': serializer.toJson<bool>(tickDuringSilence),
+      'preNotify': serializer.toJson<bool>(preNotify),
+      'preLeadSeconds': serializer.toJson<int>(preLeadSeconds),
       'isBuiltIn': serializer.toJson<bool>(isBuiltIn),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
@@ -466,6 +535,8 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     bool? speakAloud,
     double? announcementVolume,
     bool? tickDuringSilence,
+    bool? preNotify,
+    int? preLeadSeconds,
     bool? isBuiltIn,
     DateTime? createdAt,
   }) => Reminder(
@@ -479,6 +550,8 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     speakAloud: speakAloud ?? this.speakAloud,
     announcementVolume: announcementVolume ?? this.announcementVolume,
     tickDuringSilence: tickDuringSilence ?? this.tickDuringSilence,
+    preNotify: preNotify ?? this.preNotify,
+    preLeadSeconds: preLeadSeconds ?? this.preLeadSeconds,
     isBuiltIn: isBuiltIn ?? this.isBuiltIn,
     createdAt: createdAt ?? this.createdAt,
   );
@@ -502,6 +575,10 @@ class Reminder extends DataClass implements Insertable<Reminder> {
       tickDuringSilence: data.tickDuringSilence.present
           ? data.tickDuringSilence.value
           : this.tickDuringSilence,
+      preNotify: data.preNotify.present ? data.preNotify.value : this.preNotify,
+      preLeadSeconds: data.preLeadSeconds.present
+          ? data.preLeadSeconds.value
+          : this.preLeadSeconds,
       isBuiltIn: data.isBuiltIn.present ? data.isBuiltIn.value : this.isBuiltIn,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
@@ -520,6 +597,8 @@ class Reminder extends DataClass implements Insertable<Reminder> {
           ..write('speakAloud: $speakAloud, ')
           ..write('announcementVolume: $announcementVolume, ')
           ..write('tickDuringSilence: $tickDuringSilence, ')
+          ..write('preNotify: $preNotify, ')
+          ..write('preLeadSeconds: $preLeadSeconds, ')
           ..write('isBuiltIn: $isBuiltIn, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -538,6 +617,8 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     speakAloud,
     announcementVolume,
     tickDuringSilence,
+    preNotify,
+    preLeadSeconds,
     isBuiltIn,
     createdAt,
   );
@@ -555,6 +636,8 @@ class Reminder extends DataClass implements Insertable<Reminder> {
           other.speakAloud == this.speakAloud &&
           other.announcementVolume == this.announcementVolume &&
           other.tickDuringSilence == this.tickDuringSilence &&
+          other.preNotify == this.preNotify &&
+          other.preLeadSeconds == this.preLeadSeconds &&
           other.isBuiltIn == this.isBuiltIn &&
           other.createdAt == this.createdAt);
 }
@@ -570,6 +653,8 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
   final Value<bool> speakAloud;
   final Value<double> announcementVolume;
   final Value<bool> tickDuringSilence;
+  final Value<bool> preNotify;
+  final Value<int> preLeadSeconds;
   final Value<bool> isBuiltIn;
   final Value<DateTime> createdAt;
   const RemindersCompanion({
@@ -583,6 +668,8 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     this.speakAloud = const Value.absent(),
     this.announcementVolume = const Value.absent(),
     this.tickDuringSilence = const Value.absent(),
+    this.preNotify = const Value.absent(),
+    this.preLeadSeconds = const Value.absent(),
     this.isBuiltIn = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
@@ -597,6 +684,8 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     this.speakAloud = const Value.absent(),
     this.announcementVolume = const Value.absent(),
     this.tickDuringSilence = const Value.absent(),
+    this.preNotify = const Value.absent(),
+    this.preLeadSeconds = const Value.absent(),
     this.isBuiltIn = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : title = Value(title),
@@ -613,6 +702,8 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     Expression<bool>? speakAloud,
     Expression<double>? announcementVolume,
     Expression<bool>? tickDuringSilence,
+    Expression<bool>? preNotify,
+    Expression<int>? preLeadSeconds,
     Expression<bool>? isBuiltIn,
     Expression<DateTime>? createdAt,
   }) {
@@ -627,6 +718,8 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
       if (speakAloud != null) 'speak_aloud': speakAloud,
       if (announcementVolume != null) 'announcement_volume': announcementVolume,
       if (tickDuringSilence != null) 'tick_during_silence': tickDuringSilence,
+      if (preNotify != null) 'pre_notify': preNotify,
+      if (preLeadSeconds != null) 'pre_lead_seconds': preLeadSeconds,
       if (isBuiltIn != null) 'is_built_in': isBuiltIn,
       if (createdAt != null) 'created_at': createdAt,
     });
@@ -643,6 +736,8 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     Value<bool>? speakAloud,
     Value<double>? announcementVolume,
     Value<bool>? tickDuringSilence,
+    Value<bool>? preNotify,
+    Value<int>? preLeadSeconds,
     Value<bool>? isBuiltIn,
     Value<DateTime>? createdAt,
   }) {
@@ -657,6 +752,8 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
       speakAloud: speakAloud ?? this.speakAloud,
       announcementVolume: announcementVolume ?? this.announcementVolume,
       tickDuringSilence: tickDuringSilence ?? this.tickDuringSilence,
+      preNotify: preNotify ?? this.preNotify,
+      preLeadSeconds: preLeadSeconds ?? this.preLeadSeconds,
       isBuiltIn: isBuiltIn ?? this.isBuiltIn,
       createdAt: createdAt ?? this.createdAt,
     );
@@ -695,6 +792,12 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     if (tickDuringSilence.present) {
       map['tick_during_silence'] = Variable<bool>(tickDuringSilence.value);
     }
+    if (preNotify.present) {
+      map['pre_notify'] = Variable<bool>(preNotify.value);
+    }
+    if (preLeadSeconds.present) {
+      map['pre_lead_seconds'] = Variable<int>(preLeadSeconds.value);
+    }
     if (isBuiltIn.present) {
       map['is_built_in'] = Variable<bool>(isBuiltIn.value);
     }
@@ -717,6 +820,8 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
           ..write('speakAloud: $speakAloud, ')
           ..write('announcementVolume: $announcementVolume, ')
           ..write('tickDuringSilence: $tickDuringSilence, ')
+          ..write('preNotify: $preNotify, ')
+          ..write('preLeadSeconds: $preLeadSeconds, ')
           ..write('isBuiltIn: $isBuiltIn, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -746,6 +851,8 @@ typedef $$RemindersTableCreateCompanionBuilder = RemindersCompanion Function({
   Value<bool> speakAloud,
   Value<double> announcementVolume,
   Value<bool> tickDuringSilence,
+  Value<bool> preNotify,
+  Value<int> preLeadSeconds,
   Value<bool> isBuiltIn,
   Value<DateTime> createdAt,
 });
@@ -760,6 +867,8 @@ typedef $$RemindersTableUpdateCompanionBuilder = RemindersCompanion Function({
   Value<bool> speakAloud,
   Value<double> announcementVolume,
   Value<bool> tickDuringSilence,
+  Value<bool> preNotify,
+  Value<int> preLeadSeconds,
   Value<bool> isBuiltIn,
   Value<DateTime> createdAt,
 });
@@ -820,6 +929,16 @@ class $$RemindersTableFilterComposer
 
   ColumnFilters<bool> get tickDuringSilence => $composableBuilder(
     column: $table.tickDuringSilence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get preNotify => $composableBuilder(
+    column: $table.preNotify,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get preLeadSeconds => $composableBuilder(
+    column: $table.preLeadSeconds,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -893,6 +1012,16 @@ class $$RemindersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get preNotify => $composableBuilder(
+    column: $table.preNotify,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get preLeadSeconds => $composableBuilder(
+    column: $table.preLeadSeconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isBuiltIn => $composableBuilder(
     column: $table.isBuiltIn,
     builder: (column) => ColumnOrderings(column),
@@ -951,6 +1080,14 @@ class $$RemindersTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get preNotify =>
+      $composableBuilder(column: $table.preNotify, builder: (column) => column);
+
+  GeneratedColumn<int> get preLeadSeconds => $composableBuilder(
+    column: $table.preLeadSeconds,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<bool> get isBuiltIn =>
       $composableBuilder(column: $table.isBuiltIn, builder: (column) => column);
 
@@ -996,6 +1133,8 @@ class $$RemindersTableTableManager
                 Value<bool> speakAloud = const Value.absent(),
                 Value<double> announcementVolume = const Value.absent(),
                 Value<bool> tickDuringSilence = const Value.absent(),
+                Value<bool> preNotify = const Value.absent(),
+                Value<int> preLeadSeconds = const Value.absent(),
                 Value<bool> isBuiltIn = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => RemindersCompanion(
@@ -1009,6 +1148,8 @@ class $$RemindersTableTableManager
                 speakAloud: speakAloud,
                 announcementVolume: announcementVolume,
                 tickDuringSilence: tickDuringSilence,
+                preNotify: preNotify,
+                preLeadSeconds: preLeadSeconds,
                 isBuiltIn: isBuiltIn,
                 createdAt: createdAt,
               ),
@@ -1024,6 +1165,8 @@ class $$RemindersTableTableManager
                 Value<bool> speakAloud = const Value.absent(),
                 Value<double> announcementVolume = const Value.absent(),
                 Value<bool> tickDuringSilence = const Value.absent(),
+                Value<bool> preNotify = const Value.absent(),
+                Value<int> preLeadSeconds = const Value.absent(),
                 Value<bool> isBuiltIn = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => RemindersCompanion.insert(
@@ -1037,6 +1180,8 @@ class $$RemindersTableTableManager
                 speakAloud: speakAloud,
                 announcementVolume: announcementVolume,
                 tickDuringSilence: tickDuringSilence,
+                preNotify: preNotify,
+                preLeadSeconds: preLeadSeconds,
                 isBuiltIn: isBuiltIn,
                 createdAt: createdAt,
               ),
