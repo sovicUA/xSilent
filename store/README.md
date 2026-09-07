@@ -6,16 +6,22 @@
 
 ## 1. Підпис (одноразово)
 
+Upload-keystore вже згенеровано локально (PKCS12, alias `upload`, RSA-2048,
+термін дії 10000 днів): `android/app/upload-keystore.jks` +
+`android/key.properties`. Обидва — поза git (`.gitignore`).
+
+Якщо треба відтворити:
 ```bash
-keytool -genkey -v -keystore android/app/upload-keystore.jks \
-  -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+keytool -genkeypair -v -keystore android/app/upload-keystore.jks \
+  -storetype PKCS12 -keyalg RSA -keysize 2048 -validity 10000 -alias upload
 ```
 
-- Скопіювати `android/key.properties.example` → `android/key.properties`, заповнити паролями.
-- **Зберегти резервну копію `upload-keystore.jks` і паролів поза репозиторієм.**
-  Втрата = неможливо оновлювати застосунок (якщо не ввімкнено Play App Signing з
-  можливістю скидання ключа завантаження).
-- `.gitignore` уже виключає `key.properties` та `*.jks`.
+- **❗ Негайно зберегти резервну копію `upload-keystore.jks` і паролів поза
+  цією машиною** (менеджер паролів + офлайн-носій). Втрата = неможливо
+  оновлювати застосунок (якщо не ввімкнено Play App Signing з можливістю
+  скидання ключа завантаження).
+- SHA-256 сертифіката upload-ключа:
+  `2B:ED:0E:7A:82:E7:58:3F:88:FD:8E:A7:4E:AA:B4:C9:0B:41:5B:75:BC:72:96:F1:C7:C8:EB:F8:E0:BA:C9:9B`
 
 Для CI: `base64 -w0 android/app/upload-keystore.jks` → секрет `KEYSTORE_BASE64`;
 паролі/alias — окремі секрети (див. `.github/workflows/`).
@@ -46,11 +52,15 @@ URL: `https://sovicua.github.io/xSilent/privacy-policy/`
 ### Store listing
 - Тексти — з `listing-uk.md` / `listing-en.md`.
 - **Іконка 512×512** — `design/play_store_icon_512.png`.
-- **Feature graphic 1024×500** — ❗ треба створити (немає).
-- **Скріншоти телефона** — мін. 2, до 8, 16:9 або 9:16, від 320 px.
-  Зараз є лише `design/screenshots/home-screen.png`. ❗ Треба:
-  головний екран, редагування нагадування, налаштування (мова), приклад
-  сповіщення на банері. Українською та (бажано) англійською.
+- **Feature graphic 1024×500** — `design/feature-graphic.png`
+  (джерело: `design/feature-graphic.html`, рендер через headless-браузер).
+- **Скріншоти телефона** (укр., 1600×2680, з підключеного пристрою):
+  - `design/screenshots/01-home.png` — список нагадувань
+  - `design/screenshots/02-editor-builtin.png` — вбудована «Хвилина мовчання»
+  - `design/screenshots/03-editor-custom.png` — власне нагадування (гучність, дні)
+  - `design/screenshots/04-language.png` — вибір мови
+  Англійський лістинг може використати ті самі (UI впізнаваний) або зроби
+  окремі, перемкнувши мову в налаштуваннях.
 
 ### App content
 - **Політика приватності:** URL з п.3.

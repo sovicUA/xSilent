@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1024px; height: 500px; overflow: hidden; }
+  .canvas {
+    width: 1024px; height: 500px; position: relative;
+    background: linear-gradient(160deg, #14202f 0%, #23405f 60%, #2c4f74 100%);
+    font-family: "Segoe UI", "Roboto", system-ui, sans-serif;
+    display: flex; align-items: center;
+  }
+  /* warm glow behind the candle */
+  .glow {
+    position: absolute; left: 168px; top: 44%; transform: translate(-50%, -50%);
+    width: 380px; height: 380px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,214,160,0.30) 0%, rgba(255,205,140,0.10) 45%, rgba(255,205,140,0) 72%);
+  }
+  .flag {
+    position: absolute; right: 0; top: 0; bottom: 0; width: 10px;
+    background: linear-gradient(180deg, #0057B7 0 50%, #FFD700 50% 100%);
+  }
+  .art { position: relative; width: 300px; flex: none; display: flex; justify-content: center; }
+  .text { position: relative; padding-left: 24px; color: #fff; }
+  .title {
+    font-size: 78px; font-weight: 700; letter-spacing: -1px; line-height: 1.05;
+    text-shadow: 0 2px 20px rgba(0,0,0,0.35);
+  }
+  .sub {
+    margin-top: 22px; font-size: 27px; font-weight: 400; line-height: 1.4;
+    color: #cfe0f0; max-width: 600px;
+  }
+  .dot { color: #FFD700; }
+</style>
+</head>
+<body>
+<div class="canvas">
+  <div class="glow"></div>
+  <div class="art">
+    <!-- candle with flame -->
+    <svg width="220" height="380" viewBox="0 0 200 360" fill="none">
+      <!-- outer flame -->
+      <path d="M100 18 C126 58 140 84 140 112 C140 145 123 168 100 168 C77 168 60 145 60 112 C60 84 74 58 100 18 Z" fill="#FF9E2C"/>
+      <!-- inner flame -->
+      <path d="M100 60 C114 84 121 100 121 118 C121 139 112 152 100 152 C88 152 79 139 79 118 C79 100 86 84 100 60 Z" fill="#FFE7A8"/>
+      <!-- wick -->
+      <rect x="96" y="150" width="8" height="26" rx="3" fill="#3a2b1a"/>
+      <!-- candle body -->
+      <rect x="66" y="172" width="68" height="176" rx="10" fill="#F3EFE6"/>
+      <rect x="66" y="172" width="68" height="176" rx="10" fill="url(#wax)"/>
+      <!-- drip -->
+      <path d="M66 210 q-9 26 4 40 q10 -12 6 -40 Z" fill="#F3EFE6"/>
+      <defs>
+        <linearGradient id="wax" x1="66" y1="172" x2="134" y2="348" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#ffffff" stop-opacity="0.35"/>
+          <stop offset="1" stop-color="#93826a" stop-opacity="0.25"/>
+        </linearGradient>
+      </defs>
+    </svg>
+  </div>
+  <div class="text">
+    <div class="title">Хвилина<br>мовчання</div>
+    <div class="sub">Нагадує спинитись і вшанувати пам’ять.<br>Щодня о 9:00, з голосовим оголошенням.</div>
+  </div>
+  <div class="flag"></div>
+</div>
+</body>
+</html>
