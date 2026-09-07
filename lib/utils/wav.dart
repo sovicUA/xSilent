@@ -141,3 +141,32 @@ Uint8List scalePcmS16(Uint8List pcm, double gain) {
 
 /// Тривалість WAV у секундах.
 double wavDurationSeconds(Uint8List bytes) => readWav(bytes).durationSeconds;
+
+/// Один клік метронома: короткий загасаючий тон (s16le-моно).
+Uint8List metronomeTickPcm(int sampleRate, {double gain = 0.35}) {
+  const durMs = 26;
+  const freq = 2000.0;
+  final n = (sampleRate * durMs / 1000).round();
+  final out = Int16List(n);
+  for (var i = 0; i < n; i++) {
+    final t = i / sampleRate;
+    final env = math.exp(-t * 240); // швидке загасання — «клац»
+    final s = math.sin(2 * math.pi * freq * t) * env * gain;
+    out[i] = (s * 32767).round().clamp(-32768, 32767);
+  }
+  return out.buffer.asUint8List();
+}
+
+/// Доріжка метронома тривалістю [total]: клік на початку кожної секунди,
+/// решта секунди — тиша (s16le-моно).
+Uint8List metronomeTrackPcm(int sampleRate, Duration total, {double gain = 0.35}) {
+  final totalSamples = (sampleRate * total.inMicroseconds / 1e6).round();
+  final out = Int16List(math.max(0, totalSamples));
+  final tick = Int16List.sublistView(metronomeTickPcm(sampleRate, gain: gain));
+  for (var start = 0; start < out.length; start += sampleRate) {
+    for (var j = 0; j < tick.length && start + j < out.length; j++) {
+      out[start + j] = tick[j];
+    }
+  }
+  return out.buffer.asUint8List();
+}

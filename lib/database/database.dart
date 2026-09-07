@@ -35,6 +35,11 @@ class Reminders extends Table {
   RealColumn get announcementVolume =>
       real().withDefault(const Constant(1.0))();
 
+  /// Лише для вбудованого нагадування: чи програвати цокання метронома
+  /// протягом хвилини мовчання (вбудовується у звук каналу оголошення).
+  BoolColumn get tickDuringSilence =>
+      boolean().withDefault(const Constant(false))();
+
   BoolColumn get isBuiltIn => boolean().withDefault(const Constant(false))();
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
@@ -46,7 +51,7 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'xsilent'));
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -59,6 +64,9 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 4) {
             await m.addColumn(reminders, reminders.announcementVolume);
+          }
+          if (from < 5) {
+            await m.addColumn(reminders, reminders.tickDuringSilence);
           }
         },
       );

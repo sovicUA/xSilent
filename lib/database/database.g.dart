@@ -116,6 +116,21 @@ class $RemindersTable extends Reminders
         requiredDuringInsert: false,
         defaultValue: const Constant(1.0),
       );
+  static const VerificationMeta _tickDuringSilenceMeta = const VerificationMeta(
+    'tickDuringSilence',
+  );
+  @override
+  late final GeneratedColumn<bool> tickDuringSilence = GeneratedColumn<bool>(
+    'tick_during_silence',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("tick_during_silence" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _isBuiltInMeta = const VerificationMeta(
     'isBuiltIn',
   );
@@ -154,6 +169,7 @@ class $RemindersTable extends Reminders
     enabled,
     speakAloud,
     announcementVolume,
+    tickDuringSilence,
     isBuiltIn,
     createdAt,
   ];
@@ -232,6 +248,15 @@ class $RemindersTable extends Reminders
         ),
       );
     }
+    if (data.containsKey('tick_during_silence')) {
+      context.handle(
+        _tickDuringSilenceMeta,
+        tickDuringSilence.isAcceptableOrUnknown(
+          data['tick_during_silence']!,
+          _tickDuringSilenceMeta,
+        ),
+      );
+    }
     if (data.containsKey('is_built_in')) {
       context.handle(
         _isBuiltInMeta,
@@ -289,6 +314,10 @@ class $RemindersTable extends Reminders
         DriftSqlType.double,
         data['${effectivePrefix}announcement_volume'],
       )!,
+      tickDuringSilence: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}tick_during_silence'],
+      )!,
       isBuiltIn: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_built_in'],
@@ -328,6 +357,10 @@ class Reminder extends DataClass implements Insertable<Reminder> {
 
   /// Гучність озвучення саме цього нагадування, 0.0–1.0.
   final double announcementVolume;
+
+  /// Лише для вбудованого нагадування: чи програвати цокання метронома
+  /// протягом хвилини мовчання (вбудовується у звук каналу оголошення).
+  final bool tickDuringSilence;
   final bool isBuiltIn;
   final DateTime createdAt;
   const Reminder({
@@ -340,6 +373,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     required this.enabled,
     required this.speakAloud,
     required this.announcementVolume,
+    required this.tickDuringSilence,
     required this.isBuiltIn,
     required this.createdAt,
   });
@@ -357,6 +391,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     map['enabled'] = Variable<bool>(enabled);
     map['speak_aloud'] = Variable<bool>(speakAloud);
     map['announcement_volume'] = Variable<double>(announcementVolume);
+    map['tick_during_silence'] = Variable<bool>(tickDuringSilence);
     map['is_built_in'] = Variable<bool>(isBuiltIn);
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
@@ -373,6 +408,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
       enabled: Value(enabled),
       speakAloud: Value(speakAloud),
       announcementVolume: Value(announcementVolume),
+      tickDuringSilence: Value(tickDuringSilence),
       isBuiltIn: Value(isBuiltIn),
       createdAt: Value(createdAt),
     );
@@ -395,6 +431,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
       announcementVolume: serializer.fromJson<double>(
         json['announcementVolume'],
       ),
+      tickDuringSilence: serializer.fromJson<bool>(json['tickDuringSilence']),
       isBuiltIn: serializer.fromJson<bool>(json['isBuiltIn']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
@@ -412,6 +449,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
       'enabled': serializer.toJson<bool>(enabled),
       'speakAloud': serializer.toJson<bool>(speakAloud),
       'announcementVolume': serializer.toJson<double>(announcementVolume),
+      'tickDuringSilence': serializer.toJson<bool>(tickDuringSilence),
       'isBuiltIn': serializer.toJson<bool>(isBuiltIn),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
@@ -427,6 +465,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     bool? enabled,
     bool? speakAloud,
     double? announcementVolume,
+    bool? tickDuringSilence,
     bool? isBuiltIn,
     DateTime? createdAt,
   }) => Reminder(
@@ -439,6 +478,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     enabled: enabled ?? this.enabled,
     speakAloud: speakAloud ?? this.speakAloud,
     announcementVolume: announcementVolume ?? this.announcementVolume,
+    tickDuringSilence: tickDuringSilence ?? this.tickDuringSilence,
     isBuiltIn: isBuiltIn ?? this.isBuiltIn,
     createdAt: createdAt ?? this.createdAt,
   );
@@ -459,6 +499,9 @@ class Reminder extends DataClass implements Insertable<Reminder> {
       announcementVolume: data.announcementVolume.present
           ? data.announcementVolume.value
           : this.announcementVolume,
+      tickDuringSilence: data.tickDuringSilence.present
+          ? data.tickDuringSilence.value
+          : this.tickDuringSilence,
       isBuiltIn: data.isBuiltIn.present ? data.isBuiltIn.value : this.isBuiltIn,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
@@ -476,6 +519,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
           ..write('enabled: $enabled, ')
           ..write('speakAloud: $speakAloud, ')
           ..write('announcementVolume: $announcementVolume, ')
+          ..write('tickDuringSilence: $tickDuringSilence, ')
           ..write('isBuiltIn: $isBuiltIn, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -493,6 +537,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     enabled,
     speakAloud,
     announcementVolume,
+    tickDuringSilence,
     isBuiltIn,
     createdAt,
   );
@@ -509,6 +554,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
           other.enabled == this.enabled &&
           other.speakAloud == this.speakAloud &&
           other.announcementVolume == this.announcementVolume &&
+          other.tickDuringSilence == this.tickDuringSilence &&
           other.isBuiltIn == this.isBuiltIn &&
           other.createdAt == this.createdAt);
 }
@@ -523,6 +569,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
   final Value<bool> enabled;
   final Value<bool> speakAloud;
   final Value<double> announcementVolume;
+  final Value<bool> tickDuringSilence;
   final Value<bool> isBuiltIn;
   final Value<DateTime> createdAt;
   const RemindersCompanion({
@@ -535,6 +582,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     this.enabled = const Value.absent(),
     this.speakAloud = const Value.absent(),
     this.announcementVolume = const Value.absent(),
+    this.tickDuringSilence = const Value.absent(),
     this.isBuiltIn = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
@@ -548,6 +596,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     this.enabled = const Value.absent(),
     this.speakAloud = const Value.absent(),
     this.announcementVolume = const Value.absent(),
+    this.tickDuringSilence = const Value.absent(),
     this.isBuiltIn = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : title = Value(title),
@@ -563,6 +612,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     Expression<bool>? enabled,
     Expression<bool>? speakAloud,
     Expression<double>? announcementVolume,
+    Expression<bool>? tickDuringSilence,
     Expression<bool>? isBuiltIn,
     Expression<DateTime>? createdAt,
   }) {
@@ -576,6 +626,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
       if (enabled != null) 'enabled': enabled,
       if (speakAloud != null) 'speak_aloud': speakAloud,
       if (announcementVolume != null) 'announcement_volume': announcementVolume,
+      if (tickDuringSilence != null) 'tick_during_silence': tickDuringSilence,
       if (isBuiltIn != null) 'is_built_in': isBuiltIn,
       if (createdAt != null) 'created_at': createdAt,
     });
@@ -591,6 +642,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     Value<bool>? enabled,
     Value<bool>? speakAloud,
     Value<double>? announcementVolume,
+    Value<bool>? tickDuringSilence,
     Value<bool>? isBuiltIn,
     Value<DateTime>? createdAt,
   }) {
@@ -604,6 +656,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
       enabled: enabled ?? this.enabled,
       speakAloud: speakAloud ?? this.speakAloud,
       announcementVolume: announcementVolume ?? this.announcementVolume,
+      tickDuringSilence: tickDuringSilence ?? this.tickDuringSilence,
       isBuiltIn: isBuiltIn ?? this.isBuiltIn,
       createdAt: createdAt ?? this.createdAt,
     );
@@ -639,6 +692,9 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     if (announcementVolume.present) {
       map['announcement_volume'] = Variable<double>(announcementVolume.value);
     }
+    if (tickDuringSilence.present) {
+      map['tick_during_silence'] = Variable<bool>(tickDuringSilence.value);
+    }
     if (isBuiltIn.present) {
       map['is_built_in'] = Variable<bool>(isBuiltIn.value);
     }
@@ -660,6 +716,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
           ..write('enabled: $enabled, ')
           ..write('speakAloud: $speakAloud, ')
           ..write('announcementVolume: $announcementVolume, ')
+          ..write('tickDuringSilence: $tickDuringSilence, ')
           ..write('isBuiltIn: $isBuiltIn, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -688,6 +745,7 @@ typedef $$RemindersTableCreateCompanionBuilder = RemindersCompanion Function({
   Value<bool> enabled,
   Value<bool> speakAloud,
   Value<double> announcementVolume,
+  Value<bool> tickDuringSilence,
   Value<bool> isBuiltIn,
   Value<DateTime> createdAt,
 });
@@ -701,6 +759,7 @@ typedef $$RemindersTableUpdateCompanionBuilder = RemindersCompanion Function({
   Value<bool> enabled,
   Value<bool> speakAloud,
   Value<double> announcementVolume,
+  Value<bool> tickDuringSilence,
   Value<bool> isBuiltIn,
   Value<DateTime> createdAt,
 });
@@ -756,6 +815,11 @@ class $$RemindersTableFilterComposer
 
   ColumnFilters<double> get announcementVolume => $composableBuilder(
     column: $table.announcementVolume,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get tickDuringSilence => $composableBuilder(
+    column: $table.tickDuringSilence,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -824,6 +888,11 @@ class $$RemindersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get tickDuringSilence => $composableBuilder(
+    column: $table.tickDuringSilence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isBuiltIn => $composableBuilder(
     column: $table.isBuiltIn,
     builder: (column) => ColumnOrderings(column),
@@ -877,6 +946,11 @@ class $$RemindersTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get tickDuringSilence => $composableBuilder(
+    column: $table.tickDuringSilence,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<bool> get isBuiltIn =>
       $composableBuilder(column: $table.isBuiltIn, builder: (column) => column);
 
@@ -921,6 +995,7 @@ class $$RemindersTableTableManager
                 Value<bool> enabled = const Value.absent(),
                 Value<bool> speakAloud = const Value.absent(),
                 Value<double> announcementVolume = const Value.absent(),
+                Value<bool> tickDuringSilence = const Value.absent(),
                 Value<bool> isBuiltIn = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => RemindersCompanion(
@@ -933,6 +1008,7 @@ class $$RemindersTableTableManager
                 enabled: enabled,
                 speakAloud: speakAloud,
                 announcementVolume: announcementVolume,
+                tickDuringSilence: tickDuringSilence,
                 isBuiltIn: isBuiltIn,
                 createdAt: createdAt,
               ),
@@ -947,6 +1023,7 @@ class $$RemindersTableTableManager
                 Value<bool> enabled = const Value.absent(),
                 Value<bool> speakAloud = const Value.absent(),
                 Value<double> announcementVolume = const Value.absent(),
+                Value<bool> tickDuringSilence = const Value.absent(),
                 Value<bool> isBuiltIn = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => RemindersCompanion.insert(
@@ -959,6 +1036,7 @@ class $$RemindersTableTableManager
                 enabled: enabled,
                 speakAloud: speakAloud,
                 announcementVolume: announcementVolume,
+                tickDuringSilence: tickDuringSilence,
                 isBuiltIn: isBuiltIn,
                 createdAt: createdAt,
               ),

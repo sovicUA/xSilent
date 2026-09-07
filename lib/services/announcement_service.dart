@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/services.dart' show rootBundle;
@@ -29,6 +30,19 @@ class AnnouncementResult {
   final String channelId;
   final String soundName;
   final Duration duration;
+}
+
+/// Скільки цокання метронома додати в кінець доріжки озвучення.
+enum _TickFill {
+  /// Без цокання.
+  none,
+
+  /// Кілька тактів — для кнопки «Прослухати».
+  sample,
+
+  /// Заповнити доріжку цоканням до [AnnouncementService.silenceLength] —
+  /// реальний звук сповіщення хвилини мовчання.
+  full,
 }
 
 /// Який гонг ставити перед голосом.
@@ -62,6 +76,19 @@ class AnnouncementService {
   static const double _gongGain = 0.85;
   static const Duration maxLength = Duration(seconds: 30);
 
+  /// Тривалість хвилини мовчання — доріжка озвучення з метрономом
+  /// заповнюється цоканням до цього значення.
+  static const Duration silenceLength = Duration(minutes: 1);
+
+  /// Кілька тактів метронома для прев'ю.
+  static const Duration _sampleTicking = Duration(seconds: 4);
+
+  /// Мінімум цокання навіть за довгого вступу.
+  static const Duration _minTicking = Duration(seconds: 5);
+
+  /// Гучність кліку метронома (грає цілу хвилину — тихо).
+  static const double _tickGain = 0.32;
+
   /// Версія формату каналу озвучення. Входить у хеш, тож її зміна дає новий
   /// id каналу — потрібно, коли треба, щоб система перестворила канал
   /// (його аудіоатрибути незмінні після створення). `2` — перехід звуку на
@@ -70,9 +97,10 @@ class AnnouncementService {
 
   /// Детермінований хеш (FNV-1a 32-біт). `String.hashCode` у Dart
   /// рандомізується на кожен запуск ізоляту — тут це неприпустимо.
-  String _hash(String text, double volume, Gong gong) {
+  String _hash(String text, double volume, Gong gong, bool ticking) {
     var h = 0x811c9dc5;
-    final key = '$text|${(volume * 100).round()}|${gong.key}|$_channelFormatVersion';
+    final key = '$text|${(volume * 100).round()}|${gong.key}'
+        '|${ticking ? 't' : ''}|$_channelFormatVersion';
     for (final code in key.codeUnits) {
       h = (h ^ code) & 0xffffffff;
       h = (h * 0x01000193) & 0xffffffff;
@@ -80,11 +108,23 @@ class AnnouncementService {
     return h.toRadixString(16).padLeft(8, '0');
   }
 
-  String channelId(int reminderId, String text, double volume, Gong gong) =>
-      'spoken_r${reminderId}_${_hash(text, volume, gong)}';
+  String channelId(
+    int reminderId,
+    String text,
+    double volume,
+    Gong gong, {
+    bool ticking = false,
+  }) =>
+      'spoken_r${reminderId}_${_hash(text, volume, gong, ticking)}';
 
-  String soundName(int reminderId, String text, double volume, Gong gong) =>
-      'xsilent_r${reminderId}_${_hash(text, volume, gong)}.wav';
+  String soundName(
+    int reminderId,
+    String text,
+    double volume,
+    Gong gong, {
+    bool ticking = false,
+  }) =>
+      'xsilent_r${reminderId}_${_hash(text, volume, gong, ticking)}.wav';
 
   String soundPrefix(int reminderId) => 'xsilent_r${reminderId}_';
   String channelPrefix(int reminderId) => 'spoken_r${reminderId}_';
@@ -100,6 +140,7 @@ class AnnouncementService {
     String text,
     double volume,
     Gong gong,
+    _TickFill tick,
   ) async {
     while (_running != null) {
       await _running;
@@ -107,19 +148,17 @@ class AnnouncementService {
     final completer = Completer<void>();
     _running = completer.future;
     try {
-      return await _renderLocked(reminderId, text, volume, gong);
+      return await _renderLocked(reminderId, text, volume, gong, tick);
     } finally {
       _running = null;
       completer.complete();
     }
   }
 
-  Future<({String localPath, Duration duration})> _renderLocked(
-    int reminderId,
-    String text,
-    double volume,
-    Gong gong,
-  ) async {
+  /// Синтезує мовлення в WAV-моно й повертає його. `null` — якщо [text] порожній.
+  Future<WavData?> _speech(int reminderId, String text) async {
+    if (text.trim().isEmpty) return null;
+
     if (!_ttsReady) {
       await configureTts(_tts);
       await _tts.awaitSynthCompletion(true);
@@ -156,7 +195,20 @@ class AnnouncementService {
         'TTS повернув не моно (${speech.channels} каналів)',
       );
     }
-    final rate = speech.sampleRate;
+    return speech;
+  }
+
+  Future<({String localPath, Duration duration})> _renderLocked(
+    int reminderId,
+    String text,
+    double volume,
+    Gong gong,
+    _TickFill tick,
+  ) async {
+    final speech = await _speech(reminderId, text);
+    final tmp = await getTemporaryDirectory();
+    // Частота дискретизації: від TTS, інакше — від гонга.
+    final rate = speech?.sampleRate ?? (await _gong(gong)).sampleRate;
 
     final gongWav = await _gong(gong);
     var gongPcm = gongWav.pcm;
@@ -165,11 +217,29 @@ class AnnouncementService {
     }
 
     final combined = BytesBuilder()
-      ..add(scalePcmS16(gongPcm, _gongGain * volume))
-      ..add(silencePcm(rate, _gap))
-      ..add(scalePcmS16(speech.pcm, volume));
-    final pcm = combined.toBytes();
+      ..add(scalePcmS16(gongPcm, _gongGain * volume));
+    if (speech != null) {
+      combined
+        ..add(silencePcm(rate, _gap))
+        ..add(scalePcmS16(speech.pcm, volume));
+    }
 
+    if (tick != _TickFill.none) {
+      final introMs = combined.length / (rate * 2) * 1000;
+      final ticking = switch (tick) {
+        _TickFill.sample => _sampleTicking,
+        _TickFill.full => Duration(
+            milliseconds: math.max(
+              _minTicking.inMilliseconds,
+              (silenceLength.inMilliseconds - introMs).round(),
+            ),
+          ),
+        _TickFill.none => Duration.zero,
+      };
+      combined.add(metronomeTrackPcm(rate, ticking, gain: _tickGain * volume));
+    }
+
+    final pcm = combined.toBytes();
     final wav = buildWav(sampleRate: rate, pcmS16le: pcm);
     final outPath = '${tmp.path}/announcement_r$reminderId.wav';
     await File(outPath).writeAsBytes(wav, flush: true);
@@ -187,13 +257,20 @@ class AnnouncementService {
     required String text,
     required double volume,
     required Gong gong,
+    bool ticking = false,
   }) async {
-    final rendered = await _render(reminderId, text, volume, gong);
-    final name = soundName(reminderId, text, volume, gong);
+    final rendered = await _render(
+      reminderId,
+      text,
+      volume,
+      gong,
+      ticking ? _TickFill.full : _TickFill.none,
+    );
+    final name = soundName(reminderId, text, volume, gong, ticking: ticking);
     final uri = await _sound.put(name, rendered.localPath);
     return AnnouncementResult(
       contentUri: uri,
-      channelId: channelId(reminderId, text, volume, gong),
+      channelId: channelId(reminderId, text, volume, gong, ticking: ticking),
       soundName: name,
       duration: rendered.duration,
     );
@@ -204,7 +281,14 @@ class AnnouncementService {
     required String text,
     required double volume,
     required Gong gong,
+    bool ticking = false,
   }) {
-    return _render(0, text, volume, gong);
+    return _render(
+      0,
+      text,
+      volume,
+      gong,
+      ticking ? _TickFill.sample : _TickFill.none,
+    );
   }
 }

@@ -70,5 +70,35 @@ void main() {
         throwsFormatException,
       );
     });
+
+    test('metronomeTrackPcm — тривалість і по кліку на секунду', () {
+      const rate = 24000;
+      final track = Int16List.sublistView(
+        metronomeTrackPcm(rate, const Duration(seconds: 5)),
+      );
+      expect(track.length, rate * 5); // 5 с
+
+      int energy(int from, int to) {
+        var e = 0;
+        for (var i = from; i < to; i++) {
+          e += track[i].abs();
+        }
+        return e;
+      }
+
+      for (var s = 0; s < 5; s++) {
+        final tickStart = s * rate;
+        // Перші ~40 мс секунди — клік (є енергія).
+        expect(energy(tickStart, tickStart + rate ~/ 25), greaterThan(0),
+            reason: 'клік на секунді $s');
+        // Остання половина секунди — тиша.
+        expect(energy(tickStart + rate ~/ 2, tickStart + rate), 0,
+            reason: 'тиша в кінці секунди $s');
+      }
+    });
+
+    test('metronomeTrackPcm — нульова тривалість дає порожньо', () {
+      expect(metronomeTrackPcm(24000, Duration.zero).length, 0);
+    });
   });
 }

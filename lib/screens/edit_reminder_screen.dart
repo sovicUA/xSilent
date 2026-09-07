@@ -9,6 +9,7 @@ import '../l10n/app_localizations.dart';
 import '../models/weekdays.dart';
 import '../providers.dart';
 import '../services/announcement_service.dart';
+import '../services/profanity_filter.dart';
 
 class EditReminderScreen extends ConsumerStatefulWidget {
   const EditReminderScreen({super.key, this.reminder});
@@ -41,6 +42,7 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
   late bool _speakAloud;
   late bool _speakAloudTouched;
   late double _volume;
+  late bool _tickDuringSilence;
 
   bool _previewBusy = false;
   bool _titleDefaultApplied = false;
@@ -58,7 +60,10 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
     _speakAloud = reminder?.speakAloud ?? true;
     _speakAloudTouched = reminder != null;
     _volume = reminder?.announcementVolume ?? 1.0;
+    _tickDuringSilence = reminder?.tickDuringSilence ?? false;
   }
+
+  bool get _isBuiltIn => widget.reminder?.isBuiltIn ?? false;
 
   @override
   void didChangeDependencies() {
@@ -102,8 +107,12 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
 
   Future<void> _preview() async {
     if (_previewBusy || !_hasBody) return;
-    setState(() => _previewBusy = true);
     final l10n = L10n.of(context);
+    if (ProfanityFilter.containsProfanity(_bodyController.text)) {
+      _showSnack(l10n.bodyProfanityError);
+      return;
+    }
+    setState(() => _previewBusy = true);
     try {
       final gong = (widget.reminder?.isBuiltIn ?? false)
           ? Gong.main
@@ -112,6 +121,7 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
             text: _bodyController.text.trim(),
             volume: _volume,
             gong: gong,
+            ticking: _isBuiltIn && _tickDuringSilence,
           );
       if (!mounted) return;
       if (result.duration > AnnouncementService.maxLength) {
@@ -137,9 +147,15 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
       _titleController.text.trim().isNotEmpty && _weekdayMask != 0;
 
   Future<void> _save() async {
-    final repository = ref.read(remindersRepositoryProvider);
     final title = _titleController.text.trim();
     final body = _bodyController.text.trim();
+
+    if (body.isNotEmpty && ProfanityFilter.containsProfanity(body)) {
+      _showSnack(L10n.of(context).bodyProfanityError);
+      return;
+    }
+
+    final repository = ref.read(remindersRepositoryProvider);
     final reminder = widget.reminder;
 
     if (reminder == null) {
@@ -151,6 +167,7 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
         weekdayMask: _weekdayMask,
         speakAloud: _speakAloudEffective,
         announcementVolume: _volume,
+        tickDuringSilence: _isBuiltIn && _tickDuringSilence,
       );
     } else {
       await repository.update(
@@ -162,6 +179,7 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
         weekdayMask: _weekdayMask,
         speakAloud: _speakAloudEffective,
         announcementVolume: _volume,
+        tickDuringSilence: _isBuiltIn && _tickDuringSilence,
       );
     }
     if (mounted) Navigator.of(context).pop();
@@ -281,6 +299,16 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
               ),
             ),
           ],
+          if (_isBuiltIn)
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              secondary: const Icon(Icons.av_timer_outlined),
+              title: Text(l10n.tickSwitchTitle),
+              subtitle: Text(l10n.tickSwitchHint),
+              value: _tickDuringSilence,
+              onChanged: (value) =>
+                  setState(() => _tickDuringSilence = value),
+            ),
           const SizedBox(height: 16),
           Text(l10n.repeatTitle, style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),

@@ -229,6 +229,18 @@ abstract class L10n {
   /// **'Звучить через гучність будильника пристрою — не залежить від гучності сповіщень і беззвучного режиму.'**
   String get volumeAlarmHint;
 
+  /// No description provided for @tickSwitchTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Метроном протягом хвилини мовчання'**
+  String get tickSwitchTitle;
+
+  /// No description provided for @tickSwitchHint.
+  ///
+  /// In uk, this message translates to:
+  /// **'Тихе цокання щосекунди — від оголошення до сигналу завершення'**
+  String get tickSwitchHint;
+
   /// No description provided for @repeatTitle.
   ///
   /// In uk, this message translates to:
@@ -270,6 +282,12 @@ abstract class L10n {
   /// In uk, this message translates to:
   /// **'Не вдалося озвучити: {message}'**
   String previewFailed(String message);
+
+  /// No description provided for @bodyProfanityError.
+  ///
+  /// In uk, this message translates to:
+  /// **'Текст містить ненормативну лексику — приберіть її, щоб зберегти.'**
+  String get bodyProfanityError;
 
   /// No description provided for @deleteTitle.
   ///

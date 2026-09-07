@@ -82,6 +82,13 @@ class L10nUk extends L10n {
       'Звучить через гучність будильника пристрою — не залежить від гучності сповіщень і беззвучного режиму.';
 
   @override
+  String get tickSwitchTitle => 'Метроном протягом хвилини мовчання';
+
+  @override
+  String get tickSwitchHint =>
+      'Тихе цокання щосекунди — від оголошення до сигналу завершення';
+
+  @override
   String get repeatTitle => 'Повторювати';
 
   @override
@@ -105,6 +112,10 @@ class L10nUk extends L10n {
   String previewFailed(String message) {
     return 'Не вдалося озвучити: $message';
   }
+
+  @override
+  String get bodyProfanityError =>
+      'Текст містить ненормативну лексику — приберіть її, щоб зберегти.';
 
   @override
   String get deleteTitle => 'Видалити нагадування?';

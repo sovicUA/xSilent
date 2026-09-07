@@ -25,6 +25,8 @@
   "speakSwitchOffHint": "Add notification text to enable",
   "volumeLabel": "Announcement volume: {percent}%",
   "volumeAlarmHint": "Plays at the device’s alarm volume — independent of the notification volume and silent mode.",
+  "tickSwitchTitle": "Metronome during the moment of silence",
+  "tickSwitchHint": "A quiet tick every second — from the announcement to the end cue",
   "repeatTitle": "Repeat",
   "repeatEveryDay": "Every day",
   "repeatWeekdays": "Weekdays",
@@ -32,6 +34,7 @@
   "repeatNever": "Doesn’t repeat",
   "previewTooLong": "The announcement is {seconds} s long. It will be cut to ~30 s in the notification — shorten the text.",
   "previewFailed": "Couldn’t read aloud: {message}",
+  "bodyProfanityError": "The text contains profanity — remove it to save.",
 
   "deleteTitle": "Delete reminder?",
   "deleteBody": "“{name}” will be deleted.",

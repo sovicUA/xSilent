@@ -81,6 +81,13 @@ class L10nEn extends L10n {
       'Plays at the device’s alarm volume — independent of the notification volume and silent mode.';
 
   @override
+  String get tickSwitchTitle => 'Metronome during the moment of silence';
+
+  @override
+  String get tickSwitchHint =>
+      'A quiet tick every second — from the announcement to the end cue';
+
+  @override
   String get repeatTitle => 'Repeat';
 
   @override
@@ -104,6 +111,10 @@ class L10nEn extends L10n {
   String previewFailed(String message) {
     return 'Couldn’t read aloud: $message';
   }
+
+  @override
+  String get bodyProfanityError =>
+      'The text contains profanity — remove it to save.';
 
   @override
   String get deleteTitle => 'Delete reminder?';

@@ -31,6 +31,8 @@
   "@volumeLabel": { "placeholders": { "percent": { "type": "int" } } },
   "volumeAlarmHint": "Звучить через гучність будильника пристрою — не залежить від гучності сповіщень і беззвучного режиму.",
   "@volumeAlarmHint": { "description": "Підпис під повзунком гучності: канал використовує потік будильника" },
+  "tickSwitchTitle": "Метроном протягом хвилини мовчання",
+  "tickSwitchHint": "Тихе цокання щосекунди — від оголошення до сигналу завершення",
   "repeatTitle": "Повторювати",
   "repeatEveryDay": "Щодня",
   "repeatWeekdays": "По буднях",
@@ -40,6 +42,7 @@
   "@previewTooLong": { "placeholders": { "seconds": { "type": "int" } } },
   "previewFailed": "Не вдалося озвучити: {message}",
   "@previewFailed": { "placeholders": { "message": { "type": "String" } } },
+  "bodyProfanityError": "Текст містить ненормативну лексику — приберіть її, щоб зберегти.",
 
   "deleteTitle": "Видалити нагадування?",
   "deleteBody": "«{name}» буде видалено.",

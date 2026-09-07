@@ -208,13 +208,20 @@ class NotificationService {
 
     final body = reminder.body?.trim();
     final spoken = reminder.speakAloud && body != null && body.isNotEmpty;
+    // Метроном хвилини мовчання — теж «згенерований» звук каналу.
+    final ticking = reminder.isBuiltIn && reminder.tickDuringSilence;
+    final generate = spoken || ticking;
+    final genText = (spoken ? body : null) ?? '';
     final gong = reminder.isBuiltIn ? Gong.main : Gong.additional;
 
     String channelId;
     String channelName;
-    if (spoken) {
+    if (generate) {
       final volume = reminder.announcementVolume.clamp(0.0, 1.0);
-      final targetId = _announcements.channelId(reminder.id, body, volume, gong);
+      final targetId = _announcements.channelId(
+        reminder.id, genText, volume, gong,
+        ticking: ticking,
+      );
       channelName = l10n.spokenChannelName(reminder.title);
       try {
         final existing = await _android?.getNotificationChannels() ?? [];
@@ -225,14 +232,18 @@ class NotificationService {
           await _pruneSpoken(reminder.id, keepChannelId: channelId);
           await _sound.pruneExcept(
             _announcements.soundPrefix(reminder.id),
-            _announcements.soundName(reminder.id, body, volume, gong),
+            _announcements.soundName(
+              reminder.id, genText, volume, gong,
+              ticking: ticking,
+            ),
           );
         } else {
           final result = await _announcements.build(
             reminderId: reminder.id,
-            text: body,
+            text: genText,
             volume: volume,
             gong: gong,
+            ticking: ticking,
           );
           channelId = result.channelId;
           await _android?.createNotificationChannel(
