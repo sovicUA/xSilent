@@ -11,37 +11,35 @@ Moment of Silence
 ```
 A daily 9:00 reminder to honour the fallen with a moment of silence. Spoken.
 ```
+(74 / 80)
 
 ## Full description (≤ 4000 chars)
 
+Paste into Play Console as is (paragraphs with no mid-line breaks).
+
 ```
-Moment of Silence is a simple app that reminds you every day at 9:00 to pause
-and honour the memory of the fallen with a moment of silence.
+Moment of Silence is a simple app that reminds you every day at 9:00 to pause and honour the memory of the fallen with a moment of silence.
 
 What the app does:
 
-• Built-in reminder every day at 9:00 — a sequence of three cues: a heads-up
-  10 seconds before, a spoken announcement at the exact time, and an end cue
-  one minute later.
-• The announcement is spoken aloud (a gong, then synthesised speech) — it plays
-  even when the screen is locked.
-• Custom reminders — any time, any days of the week, your own text, and a
-  separate announcement volume.
+• Built-in reminder every day at 9:00 — a sequence of three cues: a heads-up 10 seconds before, a spoken announcement at the exact time, and an end cue one minute later.
+• The announcement is spoken aloud (a gong, then synthesised speech) — it plays even when the screen is locked.
+• The sound plays on the alarm channel: audible even when notifications are quiet or the phone is on silent, with a volume set per reminder.
+• Custom reminders — any time, any days of the week, your own text.
 • Notification actions: "OK" and "Snooze" (for custom reminders).
 • A "Preview" button plays the announcement while you edit a reminder.
-• Light and dark themes; Ukrainian and English interface (selectable in
-  Settings, defaults to the device region).
+• Light and dark themes; Ukrainian and English interface.
 
 Privacy:
 
-The app works fully offline. It collects no personal data and contains no ads,
-analytics or trackers. Reminders are stored on the device only.
+The app works fully offline. It collects no personal data and contains no ads, analytics or trackers. Reminders are stored on the device only.
+
 Privacy policy: https://sovicua.github.io/xSilent/privacy-policy
 
 Permissions:
 
 • Notifications — to show reminders.
-• Exact alarms — so a reminder fires at the exact second it is due.
+• Exact alarms — so a reminder fires at the exact time it is due.
 • Run at startup — to restore scheduled reminders after a reboot.
 • Vibration.
 ```
