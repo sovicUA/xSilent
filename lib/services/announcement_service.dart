@@ -87,7 +87,7 @@ class AnnouncementService {
   static const Duration _minTicking = Duration(seconds: 5);
 
   /// Гучність кліку метронома (грає цілу хвилину — тихо).
-  static const double _tickGain = 0.32;
+  static const double _tickGain = 0.20;
 
   /// Версія формату каналу озвучення. Входить у хеш, тож її зміна дає новий
   /// id каналу — потрібно, коли треба, щоб система перестворила канал
@@ -219,9 +219,11 @@ class AnnouncementService {
     final combined = BytesBuilder()
       ..add(scalePcmS16(gongPcm, _gongGain * volume));
     if (speech != null) {
+      // Рушії TTS часто віддають файл на 0 dBFS із кліпом — стишуємо до запасу,
+      // щоб мовлення не хрипіло при відтворенні.
       combined
         ..add(silencePcm(rate, _gap))
-        ..add(scalePcmS16(speech.pcm, volume));
+        ..add(scalePcmS16(speech.pcm, volume * peakScale(speech.pcm)));
     }
 
     if (tick != _TickFill.none) {

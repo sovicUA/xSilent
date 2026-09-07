@@ -100,5 +100,15 @@ void main() {
     test('metronomeTrackPcm — нульова тривалість дає порожньо', () {
       expect(metronomeTrackPcm(24000, Duration.zero).length, 0);
     });
+
+    test('peakScale — стишує гарячий сигнал, не чіпає тихий', () {
+      final hot = Int16List.fromList([32767, -32768, 100]).buffer.asUint8List();
+      expect(peakScale(hot, target: 0.8), closeTo(0.8, 0.001));
+
+      final quiet = Int16List.fromList([8000, -8000]).buffer.asUint8List();
+      expect(peakScale(quiet, target: 0.8), 1.0); // не підсилює
+
+      expect(peakScale(Uint8List(0)), 1.0); // тиша
+    });
   });
 }
