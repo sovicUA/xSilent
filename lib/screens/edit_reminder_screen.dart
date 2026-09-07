@@ -26,6 +26,16 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
   late final TextEditingController _bodyController;
   final AudioPlayer _player = AudioPlayer();
 
+  /// Прев'ю має звучати як реальне сповіщення: через потік будильника —
+  /// незалежно від гучності медіа/сповіщень і в беззвучному режимі.
+  static final AudioContext _alarmAudioContext = AudioContext(
+    android: const AudioContextAndroid(
+      contentType: AndroidContentType.sonification,
+      usageType: AndroidUsageType.alarm,
+      audioFocus: AndroidAudioFocus.gainTransientMayDuck,
+    ),
+  );
+
   late TimeOfDay _time;
   late int _weekdayMask;
   late bool _speakAloud;
@@ -108,6 +118,7 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
         _showSnack(l10n.previewTooLong(result.duration.inSeconds));
       }
       await _player.stop();
+      await _player.setAudioContext(_alarmAudioContext);
       await _player.play(DeviceFileSource(result.localPath));
     } on AnnouncementException catch (e) {
       if (mounted) _showSnack(l10n.previewFailed(e.message));
@@ -252,9 +263,21 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
             ),
             Padding(
               padding: const EdgeInsets.only(left: 4, bottom: 4),
-              child: Text(
-                l10n.volumeLabel((_volume * 100).round()),
-                style: theme.textTheme.bodySmall,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.volumeLabel((_volume * 100).round()),
+                    style: theme.textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    l10n.volumeAlarmHint,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

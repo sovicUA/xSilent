@@ -29,6 +29,8 @@
   "speakSwitchOffHint": "Додайте текст сповіщення, щоб увімкнути",
   "volumeLabel": "Гучність озвучення: {percent}%",
   "@volumeLabel": { "placeholders": { "percent": { "type": "int" } } },
+  "volumeAlarmHint": "Звучить через гучність будильника пристрою — не залежить від гучності сповіщень і беззвучного режиму.",
+  "@volumeAlarmHint": { "description": "Підпис під повзунком гучності: канал використовує потік будильника" },
   "repeatTitle": "Повторювати",
   "repeatEveryDay": "Щодня",
   "repeatWeekdays": "По буднях",

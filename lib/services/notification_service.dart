@@ -19,6 +19,13 @@ import 'sound_store.dart';
 /// [AnnouncementService] синтезує аудіофайл «гонг + текст» і кладе його в
 /// MediaStore; канал `spoken_r{id}_{hash}` вказує на цей файл. Систе­ма
 /// відтворює звук каналу незалежно від фонових обмежень застосунку.
+///
+/// Усі канали створюються з [AudioAttributesUsage.alarm]: звук іде через потік
+/// будильника, а не сповіщень. Тому він не глушиться беззвучним режимом і
+/// керується повзунком гучності будильника, а не сповіщень — так гучність
+/// хвилини мовчання перестає залежати від того, як тихо стоять сповіщення в
+/// системі. Атрибути каналу незмінні після створення, тож зміна потоку
+/// вимагає нового id каналу — звідси суфікси версій нижче та [_legacyChannelIds].
 class NotificationService {
   NotificationService({
     required this.l10n,
@@ -35,18 +42,24 @@ class NotificationService {
   final SoundStore _sound;
 
   static const String _spokenGroupId = 'spoken_group';
-  static const String silenceChannelId = 'moment_of_silence_v2';
-  static const String customChannelId = 'custom_reminders_v2';
-  static const String mosPreChannelId = 'mos_pre';
-  static const String mosEndChannelId = 'mos_end';
+  static const String silenceChannelId = 'moment_of_silence_v3';
+  static const String customChannelId = 'custom_reminders_v3';
+  static const String mosPreChannelId = 'mos_pre_v2';
+  static const String mosEndChannelId = 'mos_end_v2';
 
-  /// Канали зі старих версій застосунку — видаляються в [init].
+  /// Канали зі старих версій застосунку — видаляє [sweepLegacyChannels].
+  /// `*_v2` / `mos_pre` / `mos_end` лишилися з потоку сповіщень; замінені на
+  /// однойменні канали з потоком будильника ([AudioAttributesUsage.alarm]).
   static const List<String> _legacyChannelIds = [
     'reminders',
     'spoken_reminders',
     'spoken_reminders_v2',
     'moment_of_silence',
     'custom_reminders',
+    'moment_of_silence_v2',
+    'custom_reminders_v2',
+    'mos_pre',
+    'mos_end',
   ];
 
   static const String _smallIcon = 'ic_stat_xsilent';
@@ -65,12 +78,17 @@ class NotificationService {
       _plugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
 
+  /// Потік будильника для звуку каналу: незалежний від гучності сповіщень і
+  /// беззвучного режиму. Спільний для всіх каналів застосунку.
+  static const AudioAttributesUsage _audioUsage = AudioAttributesUsage.alarm;
+
   AndroidNotificationChannel get _silenceChannel => AndroidNotificationChannel(
         silenceChannelId,
         l10n.chanSilenceName,
         description: l10n.chanSilenceDesc,
         importance: Importance.max,
         sound: const RawResourceAndroidNotificationSound('main_gong'),
+        audioAttributesUsage: _audioUsage,
       );
 
   AndroidNotificationChannel get _customChannel => AndroidNotificationChannel(
@@ -79,6 +97,7 @@ class NotificationService {
         description: l10n.chanCustomDesc,
         importance: Importance.high,
         sound: const RawResourceAndroidNotificationSound('additional_gong'),
+        audioAttributesUsage: _audioUsage,
       );
 
   AndroidNotificationChannel get _mosPreChannel => AndroidNotificationChannel(
@@ -87,6 +106,7 @@ class NotificationService {
         description: l10n.chanPreDesc,
         importance: Importance.max,
         sound: const RawResourceAndroidNotificationSound('additional_gong'),
+        audioAttributesUsage: _audioUsage,
       );
 
   AndroidNotificationChannel get _mosEndChannel => AndroidNotificationChannel(
@@ -95,6 +115,7 @@ class NotificationService {
         description: l10n.chanEndDesc,
         importance: Importance.high,
         sound: const RawResourceAndroidNotificationSound('main_gong'),
+        audioAttributesUsage: _audioUsage,
       );
 
   /// Мінімальна ініціалізація, потрібна й у фоновому ізоляті (кнопка
@@ -134,9 +155,22 @@ class NotificationService {
       ]) {
         await android0.createNotificationChannel(ch);
       }
-      for (final id in _legacyChannelIds) {
-        await android0.deleteNotificationChannel(channelId: id);
-      }
+    }
+    await sweepLegacyChannels();
+  }
+
+  /// Видаляє канали зі старих версій ([_legacyChannelIds]).
+  ///
+  /// Викликається у [init], але також окремо після [syncAll] у `reconcile()`:
+  /// `flutter_local_notifications`, переплановуючи збережені сповіщення (напр.
+  /// після оновлення пакета — `MY_PACKAGE_REPLACED`), може перестворити старий
+  /// канал уже після того, як [init] його видалив. Другий прохід — коли всі
+  /// сповіщення зі старими id вже скасовано в [sync] — прибирає такий «привид».
+  Future<void> sweepLegacyChannels() async {
+    final android0 = _android;
+    if (android0 == null) return;
+    for (final id in _legacyChannelIds) {
+      await android0.deleteNotificationChannel(channelId: id);
     }
   }
 
@@ -209,6 +243,7 @@ class NotificationService {
               groupId: _spokenGroupId,
               importance: Importance.max,
               sound: UriAndroidNotificationSound(result.contentUri),
+              audioAttributesUsage: _audioUsage,
             ),
           );
           await _pruneSpoken(reminder.id, keepChannelId: channelId);
@@ -363,6 +398,7 @@ class NotificationService {
         importance: Importance.max,
         priority: Priority.max,
         category: AndroidNotificationCategory.reminder,
+        audioAttributesUsage: _audioUsage,
         actions: actions,
       ),
       iOS: const DarwinNotificationDetails(

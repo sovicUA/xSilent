@@ -223,6 +223,12 @@ abstract class L10n {
   /// **'Гучність озвучення: {percent}%'**
   String volumeLabel(int percent);
 
+  /// Підпис під повзунком гучності: канал використовує потік будильника
+  ///
+  /// In uk, this message translates to:
+  /// **'Звучить через гучність будильника пристрою — не залежить від гучності сповіщень і беззвучного режиму.'**
+  String get volumeAlarmHint;
+
   /// No description provided for @repeatTitle.
   ///
   /// In uk, this message translates to:

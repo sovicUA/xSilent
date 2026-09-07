@@ -62,11 +62,18 @@ class AnnouncementService {
   static const double _gongGain = 0.85;
   static const Duration maxLength = Duration(seconds: 30);
 
+  /// Версія формату каналу озвучення. Входить у хеш, тож її зміна дає новий
+  /// id каналу — потрібно, коли треба, щоб система перестворила канал
+  /// (його аудіоатрибути незмінні після створення). `2` — перехід звуку на
+  /// потік будильника ([AudioAttributesUsage.alarm]).
+  static const String _channelFormatVersion = '2';
+
   /// Детермінований хеш (FNV-1a 32-біт). `String.hashCode` у Dart
   /// рандомізується на кожен запуск ізоляту — тут це неприпустимо.
   String _hash(String text, double volume, Gong gong) {
     var h = 0x811c9dc5;
-    for (final code in '$text|${(volume * 100).round()}|${gong.key}'.codeUnits) {
+    final key = '$text|${(volume * 100).round()}|${gong.key}|$_channelFormatVersion';
+    for (final code in key.codeUnits) {
       h = (h ^ code) & 0xffffffff;
       h = (h * 0x01000193) & 0xffffffff;
     }

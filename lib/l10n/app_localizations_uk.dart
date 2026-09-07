@@ -78,6 +78,10 @@ class L10nUk extends L10n {
   }
 
   @override
+  String get volumeAlarmHint =>
+      'Звучить через гучність будильника пристрою — не залежить від гучності сповіщень і беззвучного режиму.';
+
+  @override
   String get repeatTitle => 'Повторювати';
 
   @override

@@ -77,6 +77,10 @@ class L10nEn extends L10n {
   }
 
   @override
+  String get volumeAlarmHint =>
+      'Plays at the device’s alarm volume — independent of the notification volume and silent mode.';
+
+  @override
   String get repeatTitle => 'Repeat';
 
   @override

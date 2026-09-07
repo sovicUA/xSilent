@@ -24,6 +24,7 @@
   "speakSwitchOnHint": "Play “gong + text” when it fires",
   "speakSwitchOffHint": "Add notification text to enable",
   "volumeLabel": "Announcement volume: {percent}%",
+  "volumeAlarmHint": "Plays at the device’s alarm volume — independent of the notification volume and silent mode.",
   "repeatTitle": "Repeat",
   "repeatEveryDay": "Every day",
   "repeatWeekdays": "Weekdays",

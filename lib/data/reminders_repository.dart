@@ -83,6 +83,11 @@ class RemindersRepository {
     }
 
     await _notifications.syncAll(await _db.select(_db.reminders).get());
+
+    // Другий прохід: тепер, коли всі сповіщення зі старими id скасовано,
+    // остаточно прибрати застарілі канали, які плагін міг перестворити при
+    // переплануванні збережених сповіщень (напр. після оновлення пакета).
+    await _notifications.sweepLegacyChannels();
   }
 
   Future<Reminder> create({
