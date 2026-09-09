@@ -211,10 +211,13 @@
 | `04-rhvoice-anatol` | RHVoice Anatol ♂ | HMM/склейка |
 | `06-azure-ostap` | Azure `uk-UA-OstapNeural` ♂ | нейронна (Microsoft) |
 | `07-azure-polina` | Azure `uk-UA-PolinaNeural` ♀ | нейронна (Microsoft) |
+| `08..11-eleven-*` | ElevenLabs Charlotte/Sarah ♀, Brian/George ♂ | `eleven_multilingual_v2` |
 
-Azure-зразки згенеровано через `edge-tts` (Edge Read Aloud → той самий Azure
-Neural, безкоштовно, без ключа) + зібрано з гонгом як у застосунку.
-ElevenLabs (B3) — зразки за наявності ключа (у користувача є, Starter plan).
+Azure-зразки — через `edge-tts` (Edge Read Aloud = той самий Azure Neural,
+безкоштовно, без ключа). ElevenLabs — через API (`eleven_multilingual_v2`,
+1 кредит/символ; голоси не україномовні за походженням — модель говорить укр.).
+Усі зібрано з гонгом як у застосунку. Старі Google-local та RHVoice прибрано
+з порівняння (не розглядаємо).
 
 **Уточнення (виявлено 2026-09-09):** попередній висновок «TTS клапає на 0 dBFS»
 був артефактом CRLF-псування бінарних файлів при `adb shell cat >` — на цій
