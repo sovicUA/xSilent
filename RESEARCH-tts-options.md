@@ -206,11 +206,20 @@
 | Файл | Голос | Технологія |
 |---|---|---|
 | `01-google-hfd-local` | Google `uk-ua-x-hfd-local` | стара конкатенативна, 24 кГц |
-| `02-google-hfd-network` | Google `uk-ua-x-hfd-network` (seanet) | **нейронна, 48 кГц** |
+| `02-google-hfd-network` | Google `uk-ua-x-hfd-network` (seanet) | **нейронна, 48 кГц** — обрано напрямом |
 | `03-rhvoice-natalia` | RHVoice Natalia ♀ | HMM/склейка |
 | `04-rhvoice-anatol` | RHVoice Anatol ♂ | HMM/склейка |
+| `06-azure-ostap` | Azure `uk-UA-OstapNeural` ♂ | нейронна (Microsoft) |
+| `07-azure-polina` | Azure `uk-UA-PolinaNeural` ♀ | нейронна (Microsoft) |
 
-Хмарні (Azure/ElevenLabs) зразки — зробити окремо через їхні демо/API за потреби.
+Azure-зразки згенеровано через `edge-tts` (Edge Read Aloud → той самий Azure
+Neural, безкоштовно, без ключа) + зібрано з гонгом як у застосунку.
+ElevenLabs (B3) — зразки за наявності ключа (у користувача є, Starter plan).
+
+**Уточнення (виявлено 2026-09-09):** попередній висновок «TTS клапає на 0 dBFS»
+був артефактом CRLF-псування бінарних файлів при `adb shell cat >` — на цій
+машині треба `adb exec-out`. Чистий вимір raw TTS (Google, RHVoice, Azure):
+−3…−6 dBFS, кліпу немає. `peakScale` у коді лишено як дешевий запобіжник.
 
 ---
 
