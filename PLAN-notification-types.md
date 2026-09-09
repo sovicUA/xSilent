@@ -70,6 +70,13 @@ enum ReminderType { builtin, reminder, alarm }   // зберігати як int:
 
 ## 3. Вибір голосу — ✅ ЗРОБЛЕНО (коміт `41bfae4`)
 
+> **Якість голосів.** Системні рушії звучать «електронно» (особливо RHVoice).
+> Окреме дослідження сучасного/AI-синтезу (Azure, Google Cloud, ElevenLabs,
+> on-device нейромережі) — у [RESEARCH-tts-options.md](RESEARCH-tts-options.md).
+> Швидкий крок: нейронний голос Google (`hfd-network`/SeaNet) — безкоштовний,
+> у списку зробити дефолтним.
+
+
 Реалізовано за дизайном нижче. Ключове з реалізації:
 - `flutter_tts` 4.2.5 віддає `network_required` у `getVoices` — фільтр мережевих
   надійний (не за підрядком імені). `parseUkVoices()` — чистий, тестований.
