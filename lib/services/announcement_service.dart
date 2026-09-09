@@ -236,8 +236,7 @@ class AnnouncementService {
     final combined = BytesBuilder()
       ..add(scalePcmS16(gongPcm, _gongGain * volume));
     if (speech != null) {
-      // Рушії TTS часто віддають файл на 0 dBFS із кліпом — стишуємо до запасу,
-      // щоб мовлення не хрипіло при відтворенні.
+      // peakScale — запобіжник від гарячих голосів (переважно no-op).
       combined
         ..add(silencePcm(rate, _gap))
         ..add(scalePcmS16(speech.pcm, volume * peakScale(speech.pcm)));
