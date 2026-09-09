@@ -79,10 +79,15 @@
   "languageUk": "Українська",
   "languageEn": "English",
   "settingsVoice": "Announcement voice",
-  "settingsVoiceHint": "Changes the voice for all reminders. Network voices are hidden — they don’t work offline.",
+  "settingsVoiceHint": "Changes the voice for all reminders.",
   "voiceDefault": "Default",
   "voiceNone": "No Ukrainian voices found in the engine — using the default.",
   "voiceUnavailable": "The selected voice is unavailable on this device",
   "voiceSampleText": "This is a sample of the selected announcement voice.",
-  "voiceRegenerating": "Updating reminder announcements…"
+  "voiceRegenerating": "Updating reminder announcements…",
+  "voiceGenderFemale": "Female",
+  "voiceGenderMale": "Male",
+  "voiceGenderOther": "Other",
+  "settingsVoiceNetwork": "Network voices",
+  "voiceNetworkWarning": "These work only with an internet connection. The audio is synthesized ahead of time and stored — once generated online, the reminder plays offline too."
 }

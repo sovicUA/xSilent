@@ -514,7 +514,7 @@ abstract class L10n {
   /// No description provided for @settingsVoiceHint.
   ///
   /// In uk, this message translates to:
-  /// **'Змінює озвучення всіх нагадувань. Мережеві голоси не показано — вони не працюють без інтернету.'**
+  /// **'Змінює озвучення всіх нагадувань.'**
   String get settingsVoiceHint;
 
   /// No description provided for @voiceDefault.
@@ -546,6 +546,36 @@ abstract class L10n {
   /// In uk, this message translates to:
   /// **'Оновлюю озвучення нагадувань…'**
   String get voiceRegenerating;
+
+  /// No description provided for @voiceGenderFemale.
+  ///
+  /// In uk, this message translates to:
+  /// **'Жіночі'**
+  String get voiceGenderFemale;
+
+  /// No description provided for @voiceGenderMale.
+  ///
+  /// In uk, this message translates to:
+  /// **'Чоловічі'**
+  String get voiceGenderMale;
+
+  /// No description provided for @voiceGenderOther.
+  ///
+  /// In uk, this message translates to:
+  /// **'Інші'**
+  String get voiceGenderOther;
+
+  /// No description provided for @settingsVoiceNetwork.
+  ///
+  /// In uk, this message translates to:
+  /// **'Мережеві голоси'**
+  String get settingsVoiceNetwork;
+
+  /// No description provided for @voiceNetworkWarning.
+  ///
+  /// In uk, this message translates to:
+  /// **'Працюють лише за підключення до інтернету. Звук синтезується наперед і зберігається — щойно його згенеровано онлайн, нагадування звучить і без мережі.'**
+  String get voiceNetworkWarning;
 }
 
 class _L10nDelegate extends LocalizationsDelegate<L10n> {

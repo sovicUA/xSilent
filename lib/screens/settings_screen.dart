@@ -161,7 +161,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   ) {
     final chosenMissing = chosen != null && !list.contains(chosen);
 
-    Widget trailingPlay(TtsVoice? voice) {
+    Widget play(TtsVoice? voice) {
       final active = _sampleBusy && _samplingKey == voice?.storageKey;
       return IconButton(
         icon: active
@@ -176,6 +176,83 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       );
     }
 
+    RadioListTile<String?> tile(TtsVoice v) => RadioListTile<String?>(
+          value: v.storageKey,
+          title: Text(_voiceLabel(v)),
+          subtitle: Text(v.name, style: theme.textTheme.bodySmall, maxLines: 1),
+          secondary: play(v),
+        );
+
+    Widget subHeader(String text) => Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 2),
+          child: Text(
+            text.toUpperCase(),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              letterSpacing: 1,
+            ),
+          ),
+        );
+
+    final local = list.where((v) => !v.network).toList();
+    final network = list.where((v) => v.network).toList();
+
+    final byGender = {
+      for (final g in TtsGender.values)
+        g: local.where((v) => v.gender == g).toList(),
+    };
+    final localGroups =
+        byGender.entries.where((e) => e.value.isNotEmpty).length;
+
+    final rows = <Widget>[
+      RadioListTile<String?>(
+        value: null,
+        title: Text(l10n.voiceDefault),
+        secondary: play(null),
+      ),
+    ];
+
+    if (localGroups > 1) {
+      for (final (g, label) in [
+        (TtsGender.female, l10n.voiceGenderFemale),
+        (TtsGender.male, l10n.voiceGenderMale),
+        (TtsGender.unknown, l10n.voiceGenderOther),
+      ]) {
+        final vs = byGender[g]!;
+        if (vs.isEmpty) continue;
+        rows..add(subHeader(label))..addAll(vs.map(tile));
+      }
+    } else {
+      rows.addAll(local.map(tile));
+    }
+
+    if (network.isNotEmpty) {
+      rows
+        ..add(subHeader(l10n.settingsVoiceNetwork))
+        ..add(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.wifi_outlined,
+                    size: 16, color: theme.colorScheme.onSurfaceVariant),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    l10n.voiceNetworkWarning,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        )
+        ..addAll(network.map(tile));
+    }
+
     return [
       RadioGroup<String?>(
         groupValue: chosen?.storageKey,
@@ -183,28 +260,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           key == null ? null : list.firstWhere((v) => v.storageKey == key),
         ),
         child: Column(
-          children: [
-            RadioListTile<String?>(
-              value: null,
-              title: Text(l10n.voiceDefault),
-              secondary: trailingPlay(null),
-            ),
-            for (final v in list)
-              RadioListTile<String?>(
-                value: v.storageKey,
-                title: Text(_voiceLabel(v)),
-                subtitle: Text(v.name,
-                    style: theme.textTheme.bodySmall, maxLines: 1),
-                secondary: trailingPlay(v),
-              ),
-          ],
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: rows,
         ),
       ),
       if (list.isEmpty)
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-          child:
-              Text(l10n.voiceNone, style: theme.textTheme.bodyMedium),
+          child: Text(l10n.voiceNone, style: theme.textTheme.bodyMedium),
         ),
       if (chosenMissing)
         Padding(

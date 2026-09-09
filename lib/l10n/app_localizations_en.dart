@@ -237,8 +237,7 @@ class L10nEn extends L10n {
   String get settingsVoice => 'Announcement voice';
 
   @override
-  String get settingsVoiceHint =>
-      'Changes the voice for all reminders. Network voices are hidden — they don’t work offline.';
+  String get settingsVoiceHint => 'Changes the voice for all reminders.';
 
   @override
   String get voiceDefault => 'Default';
@@ -257,4 +256,20 @@ class L10nEn extends L10n {
 
   @override
   String get voiceRegenerating => 'Updating reminder announcements…';
+
+  @override
+  String get voiceGenderFemale => 'Female';
+
+  @override
+  String get voiceGenderMale => 'Male';
+
+  @override
+  String get voiceGenderOther => 'Other';
+
+  @override
+  String get settingsVoiceNetwork => 'Network voices';
+
+  @override
+  String get voiceNetworkWarning =>
+      'These work only with an internet connection. The audio is synthesized ahead of time and stored — once generated online, the reminder plays offline too.';
 }

@@ -238,8 +238,7 @@ class L10nUk extends L10n {
   String get settingsVoice => 'Голос озвучення';
 
   @override
-  String get settingsVoiceHint =>
-      'Змінює озвучення всіх нагадувань. Мережеві голоси не показано — вони не працюють без інтернету.';
+  String get settingsVoiceHint => 'Змінює озвучення всіх нагадувань.';
 
   @override
   String get voiceDefault => 'Стандартний';
@@ -256,4 +255,20 @@ class L10nUk extends L10n {
 
   @override
   String get voiceRegenerating => 'Оновлюю озвучення нагадувань…';
+
+  @override
+  String get voiceGenderFemale => 'Жіночі';
+
+  @override
+  String get voiceGenderMale => 'Чоловічі';
+
+  @override
+  String get voiceGenderOther => 'Інші';
+
+  @override
+  String get settingsVoiceNetwork => 'Мережеві голоси';
+
+  @override
+  String get voiceNetworkWarning =>
+      'Працюють лише за підключення до інтернету. Звук синтезується наперед і зберігається — щойно його згенеровано онлайн, нагадування звучить і без мережі.';
 }
