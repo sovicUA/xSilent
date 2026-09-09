@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Хвилина мовчання — порівняння голосів озвучення</title>
+<meta name="description" content="Зразки синтезованих голосів для озвучення сповіщень застосунку «Хвилина мовчання»: Google SeaNet, Azure Neural, ElevenLabs.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@0,400;0,500;0,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --ground:#f5f4f1; --raised:#fffefb; --ink:#20272e; --muted:#6a7079;
+    --hair:#e4e1d9; --slate:#3f5c78; --slate-soft:#4a6a88; --warm:#bd7b39;
+    --good:#3f7d54;
+    --shadow:0 1px 2px rgba(31,39,46,.05),0 6px 20px -12px rgba(31,39,46,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --ground:#14181c; --raised:#1b2127; --ink:#e7e9eb; --muted:#98a0a9;
+      --hair:#2b323a; --slate:#9db8d2; --slate-soft:#8098b4; --warm:#d79a5b;
+      --good:#7bbd8f;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -14px rgba(0,0,0,.55);
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);
+    font:400 16px/1.6 "IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+    padding:clamp(20px,5vw,64px) 20px 72px;}
+  .wrap{max-width:660px;margin:0 auto}
+  .eyebrow{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--slate);margin:0 0 14px}
+  h1{font:500 clamp(26px,5vw,34px)/1.15 "Spectral",Georgia,serif;margin:0 0 12px;
+    text-wrap:balance;letter-spacing:-.01em}
+  .lede{margin:0 0 8px;color:var(--muted);max-width:60ch}
+  .lede b{color:var(--ink);font-weight:600}
+  .say{margin:14px 0 10px;font:400 15px/1.5 "Spectral",Georgia,serif;
+    color:var(--ink);padding-left:14px;border-left:3px solid var(--hair)}
+  .note{margin:0 0 26px;color:var(--muted);font-size:13.5px}
+
+  h2.grp{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--slate);margin:30px 0 12px;padding-top:14px;border-top:1px solid var(--hair)}
+  h2.grp:first-of-type{border-top:0;padding-top:0}
+  ol.clips{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+  .clip{display:grid;grid-template-columns:auto 1fr;gap:4px 18px;align-items:center;
+    background:var(--raised);border:1px solid var(--hair);border-radius:14px;
+    padding:16px 18px;box-shadow:var(--shadow)}
+  .clip.playing{border-color:var(--warm)}
+  .play{grid-row:1/3;width:52px;height:52px;border-radius:50%;border:1px solid var(--slate);
+    background:transparent;color:var(--slate);display:grid;place-items:center;cursor:pointer;
+    flex:none;transition:background .16s,color .16s,border-color .16s,transform .1s}
+  .play:hover{background:var(--slate);color:var(--raised)}
+  .play:active{transform:scale(.94)}
+  .clip.playing .play{background:var(--warm);border-color:var(--warm);color:#fff}
+  .play svg{width:20px;height:20px;display:block}
+  .play:focus-visible{outline:2px solid var(--warm);outline-offset:3px}
+  .head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .tag{font:500 11px/1 "IBM Plex Mono",monospace;letter-spacing:.05em;
+    border:1px solid var(--hair);border-radius:5px;padding:3px 6px;color:var(--muted)}
+  .name{font-weight:600;font-size:15.5px}
+  .desc{grid-column:2;margin:2px 0 8px;color:var(--muted);font-size:14px}
+  canvas.wave{grid-column:2;width:100%;height:44px;display:block;border-radius:6px;background:transparent}
+  .foot{margin-top:34px;padding-top:22px;border-top:1px solid var(--hair);
+    display:flex;flex-direction:column;gap:12px;font-size:14.5px;color:var(--muted)}
+  .foot b{color:var(--ink);font-weight:600}
+  .foot a{color:var(--slate)}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">xSilent · дослідження TTS</p>
+  <h1>Який голос лишаємо на озвучення?</h1>
+  <p class="lede">Зразки синтезованого мовлення для озвучення сповіщень. Усі — <b>гонг + голос</b>, вирівняні по гучності, той самий текст. Три напрями: <b>A</b> — Google, <b>B1</b> — Azure, <b>B3</b> — ElevenLabs.</p>
+  <p class="say">«Це зразок обраного голосу озвучення.»</p>
+  <p class="note">Послухайте й напишіть, який голос звучить найкраще для хвилини мовчання.</p>
+
+  <h2 class="grp">A · Google — швидко й безкоштовно</h2>
+  <ol class="clips" id="grpA"></ol>
+
+  <h2 class="grp">B1 · Azure Neural — безкоштовно в межах квоти</h2>
+  <ol class="clips" id="grpB1"></ol>
+
+  <h2 class="grp">B3 · ElevenLabs — нативні україномовні голоси</h2>
+  <ol class="clips" id="grpB3"></ol>
+
+  <div class="foot">
+    <p><b>A — Google SeaNet:</b> ~0.5 дня роботи, безкоштовно, лише жіночий голос, перший синтез потребує мережі, далі кеш офлайн.</p>
+    <p><b>B1 — Azure</b> та <b>B3 — ElevenLabs:</b> ~2–3 дні роботи кожен. Обидві статі, синтез онлайн один раз → кеш офлайн. Потребують дозволу <code>INTERNET</code> та оновлення політики приватності. Azure — безкоштовно в межах квоти (500K символів/міс); ElevenLabs — платний акаунт, голоси нативні з бібліотеки спільноти.</p>
+    <p><a href="../">← Хвилина мовчання</a> · <a href="https://github.com/sovicUA/xSilent">github.com/sovicUA/xSilent</a></p>
+  </div>
+</div>
+
+<script>
+const CLIPS = {
+  grpA: [
+    {id:"A · SEANET ♀", name:"Google — мережевий голос (SeaNet)", src:"audio/google-seanet.mp3",
+     desc:"uk-ua-x-hfd-network, 48 кГц. Безкоштовно, лише жіночий."},
+  ],
+  grpB1: [
+    {id:"B1 · OSTAP ♂", name:"Azure — uk-UA-OstapNeural", src:"audio/azure-ostap.mp3",
+     desc:"Нейронний голос Microsoft. Free 500K символів/міс."},
+    {id:"B1 · POLINA ♀", name:"Azure — uk-UA-PolinaNeural", src:"audio/azure-polina.mp3",
+     desc:"Той самий провайдер, жіночий голос."},
+  ],
+  grpB3: [
+    {id:"B3 · MILA ♀", name:"ElevenLabs — Mila G (диктор аудіокниг)", src:"audio/el-mila.mp3",
+     desc:"Нативний україномовний голос. Спокійна, професійна подача — добре пасує до озвучення."},
+    {id:"B3 · LEONID ♂", name:"ElevenLabs — Leonid Drapei (спокійний учитель)", src:"audio/el-leonid.mp3",
+     desc:"Нативний, київська вимова, медитативна інтонація."},
+    {id:"B3 · MARICHKA ♀", name:"ElevenLabs — Marichka Kvitka (яскрава, грайлива)", src:"audio/el-marichka.mp3",
+     desc:"Нативний, київська вимова, піднесена подача."},
+    {id:"B3 · MAKS ♂", name:"ElevenLabs — Maks Tsukrenko (впевнений, подкаст)", src:"audio/el-maks.mp3",
+     desc:"Нативний, київська вимова, невимушений тон."},
+    {id:"B3 · HECTOR ♂", name:"ElevenLabs — Hector Surovy (низький, авторитетний)", src:"audio/el-hector.mp3",
+     desc:"Нативний, глибокий тембр."},
+    {id:"B3 · VISHCHUN ♂", name:"ElevenLabs — Did Vishchun (карпатський старець)", src:"audio/el-vishchun.mp3",
+     desc:"Нативний, характерний, емоційний."},
+  ],
+};
+
+const PLAY = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72c0 .83.9 1.34 1.61.91l10.72-6.86c.67-.43.67-1.39 0-1.82L9.61 4.23C8.9 3.8 8 4.31 8 5.14Z"/></svg>';
+const STOP = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
+const reduce = matchMedia('(prefers-reduced-motion:reduce)').matches;
+const AC = window.AudioContext || window.webkitAudioContext;
+const ctx = AC ? new AC() : null;
+let current = null;
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+for (const [gid, clips] of Object.entries(CLIPS)) {
+  const list = document.getElementById(gid);
+  clips.forEach(clip => {
+    const li = document.createElement('li');
+    li.className = 'clip';
+    li.innerHTML = `
+      <button class="play" aria-label="Програти: ${clip.name}">${PLAY}</button>
+      <div class="head"><span class="tag">${clip.id}</span><span class="name">${clip.name}</span></div>
+      <p class="desc">${clip.desc}</p>
+      <canvas class="wave" width="1200" height="80"></canvas>
+      <audio preload="none" src="${clip.src}"></audio>`;
+    list.appendChild(li);
+    const audio = li.querySelector('audio'), btn = li.querySelector('.play'), canvas = li.querySelector('canvas');
+    clip.el = { li, audio, btn, canvas, peaks:null, raf:0 };
+    if (ctx) fetch(clip.src).then(r => r.arrayBuffer()).then(b => ctx.decodeAudioData(b))
+      .then(buf => { clip.el.peaks = peaks(buf, canvas.width); draw(clip); }).catch(()=>{});
+    btn.addEventListener('click', () => {
+      if (current === clip) return stop(clip);
+      if (current) stop(current);
+      if (ctx && ctx.state === 'suspended') ctx.resume();
+      audio.currentTime = 0; audio.play();
+      current = clip; li.classList.add('playing'); btn.innerHTML = STOP; sweep(clip);
+    });
+    audio.addEventListener('ended', () => stop(clip));
+  });
+}
+function stop(clip){ const {li,audio,btn,raf}=clip.el; audio.pause(); li.classList.remove('playing');
+  btn.innerHTML = PLAY; cancelAnimationFrame(raf); if(current===clip) current=null; draw(clip); }
+function peaks(buf, cols){
+  const d = buf.getChannelData(0), step = Math.floor(d.length/cols)||1, p = new Float32Array(cols);
+  for(let i=0;i<cols;i++){ let m=0; const s=i*step,e=Math.min(s+step,d.length);
+    for(let j=s;j<e;j++){ const v=Math.abs(d[j]); if(v>m) m=v; } p[i]=m; }
+  let mx=0; for(const v of p) if(v>mx) mx=v; if(mx>0) for(let i=0;i<cols;i++) p[i]/=mx; return p;
+}
+function draw(clip, prog){
+  const {canvas,peaks:p}=clip.el, c=canvas.getContext('2d'), W=canvas.width,H=canvas.height,mid=H/2;
+  c.clearRect(0,0,W,H); if(!p) return;
+  const base=cssVar('--slate-soft')||'#4a6a88', done=cssVar('--warm')||'#bd7b39', faint=cssVar('--hair')||'#e4e1d9';
+  c.strokeStyle=faint; c.lineWidth=1; c.beginPath(); c.moveTo(0,mid); c.lineTo(W,mid); c.stroke();
+  c.lineWidth=2;
+  for(let i=0;i<p.length;i++){ const h=Math.max(1,p[i]*(mid-3));
+    c.strokeStyle=(prog!=null && i/p.length<=prog)?done:base;
+    c.beginPath(); c.moveTo(i,mid-h); c.lineTo(i,mid+h); c.stroke(); }
+}
+function sweep(clip){ const {audio}=clip.el;
+  const loop=()=>{ const pr=audio.duration?audio.currentTime/audio.duration:0;
+    draw(clip, reduce?undefined:pr);
+    if(!audio.paused && !audio.ended) clip.el.raf=requestAnimationFrame(loop); };
+  loop();
+}
+</script>
+</body>
+</html>
