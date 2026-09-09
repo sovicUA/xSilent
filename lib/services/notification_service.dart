@@ -12,6 +12,7 @@ import '../l10n/app_localizations.dart';
 import '../models/weekdays.dart';
 import 'announcement_service.dart';
 import 'sound_store.dart';
+import 'tts_service.dart';
 
 /// Планування локальних сповіщень для нагадувань.
 ///
@@ -29,6 +30,7 @@ import 'sound_store.dart';
 class NotificationService {
   NotificationService({
     required this.l10n,
+    this.ttsVoice,
     FlutterLocalNotificationsPlugin? plugin,
     AnnouncementService? announcements,
     SoundStore? soundStore,
@@ -37,6 +39,11 @@ class NotificationService {
         _sound = soundStore ?? const SoundStore();
 
   final L10n l10n;
+
+  /// Обраний голос озвучення (`null` — за замовчуванням). Входить у хеш каналу,
+  /// тож зміна голосу перегенеровує всі оголошення при `reconcile()`.
+  final TtsVoice? ttsVoice;
+
   final FlutterLocalNotificationsPlugin _plugin;
   final AnnouncementService _announcements;
   final SoundStore _sound;
@@ -220,6 +227,7 @@ class NotificationService {
     final ticking = reminder.isBuiltIn && reminder.tickDuringSilence;
     final generate = spoken || ticking;
     final genText = (spoken ? body : null) ?? '';
+    final voice = spoken ? ttsVoice : null;
     final gong = reminder.isBuiltIn ? Gong.main : Gong.additional;
 
     String channelId;
@@ -228,7 +236,7 @@ class NotificationService {
       final volume = reminder.announcementVolume.clamp(0.0, 1.0);
       final targetId = _announcements.channelId(
         reminder.id, genText, volume, gong,
-        ticking: ticking,
+        ticking: ticking, voice: voice,
       );
       channelName = l10n.spokenChannelName(reminder.title);
       try {
@@ -242,7 +250,7 @@ class NotificationService {
             _announcements.soundPrefix(reminder.id),
             _announcements.soundName(
               reminder.id, genText, volume, gong,
-              ticking: ticking,
+              ticking: ticking, voice: voice,
             ),
           );
         } else {
@@ -252,6 +260,7 @@ class NotificationService {
             volume: volume,
             gong: gong,
             ticking: ticking,
+            voice: voice,
           );
           channelId = result.channelId;
           await _android?.createNotificationChannel(

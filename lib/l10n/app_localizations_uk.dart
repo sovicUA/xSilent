@@ -233,4 +233,27 @@ class L10nUk extends L10n {
 
   @override
   String get languageEn => 'English';
+
+  @override
+  String get settingsVoice => 'Голос озвучення';
+
+  @override
+  String get settingsVoiceHint =>
+      'Змінює озвучення всіх нагадувань. Мережеві голоси не показано — вони не працюють без інтернету.';
+
+  @override
+  String get voiceDefault => 'Стандартний';
+
+  @override
+  String get voiceNone =>
+      'Українських голосів у рушії не знайдено — використовується стандартний.';
+
+  @override
+  String get voiceUnavailable => 'Обраний голос недоступний на цьому пристрої';
+
+  @override
+  String get voiceSampleText => 'Це зразок обраного голосу озвучення.';
+
+  @override
+  String get voiceRegenerating => 'Оновлюю озвучення нагадувань…';
 }

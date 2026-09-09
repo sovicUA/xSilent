@@ -46,4 +46,11 @@ Future<void> main() async {
     (previous, next) => _scheduleReconcile(container),
     fireImmediately: true,
   );
+
+  // Зміна голосу озвучення — теж через серіалізований ланцюжок: `reconcile()`
+  // перегенерує всі оголошення (голос входить у хеш каналу).
+  container.listen(
+    ttsVoiceControllerProvider,
+    (previous, next) => _scheduleReconcile(container),
+  );
 }

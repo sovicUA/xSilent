@@ -232,4 +232,29 @@ class L10nEn extends L10n {
 
   @override
   String get languageEn => 'English';
+
+  @override
+  String get settingsVoice => 'Announcement voice';
+
+  @override
+  String get settingsVoiceHint =>
+      'Changes the voice for all reminders. Network voices are hidden — they don’t work offline.';
+
+  @override
+  String get voiceDefault => 'Default';
+
+  @override
+  String get voiceNone =>
+      'No Ukrainian voices found in the engine — using the default.';
+
+  @override
+  String get voiceUnavailable =>
+      'The selected voice is unavailable on this device';
+
+  @override
+  String get voiceSampleText =>
+      'This is a sample of the selected announcement voice.';
+
+  @override
+  String get voiceRegenerating => 'Updating reminder announcements…';
 }

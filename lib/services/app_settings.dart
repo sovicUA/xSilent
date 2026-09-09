@@ -1,10 +1,13 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../l10n/app_localizations.dart';
+import 'tts_service.dart';
 
 const String _localeKey = 'app_locale';
+const String _voiceKey = 'tts_voice';
 
 /// Регіони, для яких «Авто» дає українську; решта — англійська.
 const Set<String> _ukRegions = {'UA', 'RU', 'BY'};
@@ -39,6 +42,31 @@ class LocaleController extends Notifier<Locale?> {
 
 final localeControllerProvider =
     NotifierProvider<LocaleController, Locale?>(LocaleController.new);
+
+/// Обраний користувачем голос озвучення: `null` — голос рушія за замовчуванням.
+class TtsVoiceController extends Notifier<TtsVoice?> {
+  @override
+  TtsVoice? build() =>
+      TtsVoice.fromStorage(ref.read(sharedPreferencesProvider).getString(_voiceKey));
+
+  Future<void> set(TtsVoice? voice) async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    if (voice == null) {
+      await prefs.remove(_voiceKey);
+    } else {
+      await prefs.setString(_voiceKey, voice.storageKey);
+    }
+    state = voice;
+  }
+}
+
+final ttsVoiceControllerProvider =
+    NotifierProvider<TtsVoiceController, TtsVoice?>(TtsVoiceController.new);
+
+/// Локальні українські голоси рушія TTS (для екрана налаштувань).
+final ukTtsVoicesProvider = FutureProvider<List<TtsVoice>>(
+  (ref) => availableUkVoices(FlutterTts()),
+);
 
 /// Локалі пристрою. Початкове значення береться з `PlatformDispatcher`, але на
 /// старті воно буває неточним (Android віддає `ro.product.locale` ще до того, як

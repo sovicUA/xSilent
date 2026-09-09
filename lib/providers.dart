@@ -22,6 +22,7 @@ final announcementServiceProvider = Provider<AnnouncementService>((ref) {
 final notificationServiceProvider = Provider<NotificationService>((ref) {
   return NotificationService(
     l10n: ref.watch(l10nProvider),
+    ttsVoice: ref.watch(ttsVoiceControllerProvider),
     announcements: ref.watch(announcementServiceProvider),
     soundStore: ref.watch(soundStoreProvider),
   );

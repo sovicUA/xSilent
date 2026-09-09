@@ -504,6 +504,48 @@ abstract class L10n {
   /// In uk, this message translates to:
   /// **'English'**
   String get languageEn;
+
+  /// No description provided for @settingsVoice.
+  ///
+  /// In uk, this message translates to:
+  /// **'Голос озвучення'**
+  String get settingsVoice;
+
+  /// No description provided for @settingsVoiceHint.
+  ///
+  /// In uk, this message translates to:
+  /// **'Змінює озвучення всіх нагадувань. Мережеві голоси не показано — вони не працюють без інтернету.'**
+  String get settingsVoiceHint;
+
+  /// No description provided for @voiceDefault.
+  ///
+  /// In uk, this message translates to:
+  /// **'Стандартний'**
+  String get voiceDefault;
+
+  /// No description provided for @voiceNone.
+  ///
+  /// In uk, this message translates to:
+  /// **'Українських голосів у рушії не знайдено — використовується стандартний.'**
+  String get voiceNone;
+
+  /// No description provided for @voiceUnavailable.
+  ///
+  /// In uk, this message translates to:
+  /// **'Обраний голос недоступний на цьому пристрої'**
+  String get voiceUnavailable;
+
+  /// No description provided for @voiceSampleText.
+  ///
+  /// In uk, this message translates to:
+  /// **'Це зразок обраного голосу озвучення.'**
+  String get voiceSampleText;
+
+  /// No description provided for @voiceRegenerating.
+  ///
+  /// In uk, this message translates to:
+  /// **'Оновлюю озвучення нагадувань…'**
+  String get voiceRegenerating;
 }
 
 class _L10nDelegate extends LocalizationsDelegate<L10n> {

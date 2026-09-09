@@ -9,6 +9,7 @@ import '../l10n/app_localizations.dart';
 import '../models/weekdays.dart';
 import '../providers.dart';
 import '../services/announcement_service.dart';
+import '../services/app_settings.dart';
 import '../services/profanity_filter.dart';
 
 class EditReminderScreen extends ConsumerStatefulWidget {
@@ -126,6 +127,7 @@ class _EditReminderScreenState extends ConsumerState<EditReminderScreen> {
             volume: _volume,
             gong: gong,
             ticking: _isBuiltIn && _tickDuringSilence,
+            voice: ref.read(ttsVoiceControllerProvider),
           );
       if (!mounted) return;
       if (result.duration > AnnouncementService.maxLength) {

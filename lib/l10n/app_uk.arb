@@ -92,5 +92,12 @@
   "settingsLanguage": "Мова",
   "languageAuto": "Авто (за регіоном)",
   "languageUk": "Українська",
-  "languageEn": "English"
+  "languageEn": "English",
+  "settingsVoice": "Голос озвучення",
+  "settingsVoiceHint": "Змінює озвучення всіх нагадувань. Мережеві голоси не показано — вони не працюють без інтернету.",
+  "voiceDefault": "Стандартний",
+  "voiceNone": "Українських голосів у рушії не знайдено — використовується стандартний.",
+  "voiceUnavailable": "Обраний голос недоступний на цьому пристрої",
+  "voiceSampleText": "Це зразок обраного голосу озвучення.",
+  "voiceRegenerating": "Оновлюю озвучення нагадувань…"
 }

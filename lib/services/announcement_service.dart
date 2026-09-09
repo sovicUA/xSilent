@@ -68,7 +68,9 @@ class AnnouncementService {
   final SoundStore _sound;
   final FlutterTts _tts;
 
-  bool _ttsReady = false;
+  bool _ttsInit = false;
+  Object? _appliedVoice = _voiceUnset;
+  static const Object _voiceUnset = Object();
   final Map<Gong, WavData> _gongs = {};
   Future<void>? _running; // серіалізація синтезу
 
@@ -97,10 +99,16 @@ class AnnouncementService {
 
   /// Детермінований хеш (FNV-1a 32-біт). `String.hashCode` у Dart
   /// рандомізується на кожен запуск ізоляту — тут це неприпустимо.
-  String _hash(String text, double volume, Gong gong, bool ticking) {
+  String _hash(
+    String text,
+    double volume,
+    Gong gong,
+    bool ticking,
+    String voiceTag,
+  ) {
     var h = 0x811c9dc5;
     final key = '$text|${(volume * 100).round()}|${gong.key}'
-        '|${ticking ? 't' : ''}|$_channelFormatVersion';
+        '|${ticking ? 't' : ''}|$voiceTag|$_channelFormatVersion';
     for (final code in key.codeUnits) {
       h = (h ^ code) & 0xffffffff;
       h = (h * 0x01000193) & 0xffffffff;
@@ -114,8 +122,10 @@ class AnnouncementService {
     double volume,
     Gong gong, {
     bool ticking = false,
+    TtsVoice? voice,
   }) =>
-      'spoken_r${reminderId}_${_hash(text, volume, gong, ticking)}';
+      'spoken_r${reminderId}_'
+      '${_hash(text, volume, gong, ticking, voice?.name ?? '')}';
 
   String soundName(
     int reminderId,
@@ -123,8 +133,10 @@ class AnnouncementService {
     double volume,
     Gong gong, {
     bool ticking = false,
+    TtsVoice? voice,
   }) =>
-      'xsilent_r${reminderId}_${_hash(text, volume, gong, ticking)}.wav';
+      'xsilent_r${reminderId}_'
+      '${_hash(text, volume, gong, ticking, voice?.name ?? '')}.wav';
 
   String soundPrefix(int reminderId) => 'xsilent_r${reminderId}_';
   String channelPrefix(int reminderId) => 'spoken_r${reminderId}_';
@@ -141,6 +153,7 @@ class AnnouncementService {
     double volume,
     Gong gong,
     _TickFill tick,
+    TtsVoice? voice,
   ) async {
     while (_running != null) {
       await _running;
@@ -148,7 +161,7 @@ class AnnouncementService {
     final completer = Completer<void>();
     _running = completer.future;
     try {
-      return await _renderLocked(reminderId, text, volume, gong, tick);
+      return await _renderLocked(reminderId, text, volume, gong, tick, voice);
     } finally {
       _running = null;
       completer.complete();
@@ -156,13 +169,16 @@ class AnnouncementService {
   }
 
   /// Синтезує мовлення в WAV-моно й повертає його. `null` — якщо [text] порожній.
-  Future<WavData?> _speech(int reminderId, String text) async {
+  Future<WavData?> _speech(int reminderId, String text, TtsVoice? voice) async {
     if (text.trim().isEmpty) return null;
 
-    if (!_ttsReady) {
-      await configureTts(_tts);
+    if (!_ttsInit) {
       await _tts.awaitSynthCompletion(true);
-      _ttsReady = true;
+      _ttsInit = true;
+    }
+    if (_appliedVoice != voice) {
+      await configureTts(_tts, voice: voice);
+      _appliedVoice = voice;
     }
 
     final tmp = await getTemporaryDirectory();
@@ -204,8 +220,9 @@ class AnnouncementService {
     double volume,
     Gong gong,
     _TickFill tick,
+    TtsVoice? voice,
   ) async {
-    final speech = await _speech(reminderId, text);
+    final speech = await _speech(reminderId, text, voice);
     final tmp = await getTemporaryDirectory();
     // Частота дискретизації: від TTS, інакше — від гонга.
     final rate = speech?.sampleRate ?? (await _gong(gong)).sampleRate;
@@ -260,6 +277,7 @@ class AnnouncementService {
     required double volume,
     required Gong gong,
     bool ticking = false,
+    TtsVoice? voice,
   }) async {
     final rendered = await _render(
       reminderId,
@@ -267,12 +285,19 @@ class AnnouncementService {
       volume,
       gong,
       ticking ? _TickFill.full : _TickFill.none,
+      voice,
     );
-    final name = soundName(reminderId, text, volume, gong, ticking: ticking);
+    final name = soundName(
+      reminderId, text, volume, gong,
+      ticking: ticking, voice: voice,
+    );
     final uri = await _sound.put(name, rendered.localPath);
     return AnnouncementResult(
       contentUri: uri,
-      channelId: channelId(reminderId, text, volume, gong, ticking: ticking),
+      channelId: channelId(
+        reminderId, text, volume, gong,
+        ticking: ticking, voice: voice,
+      ),
       soundName: name,
       duration: rendered.duration,
     );
@@ -284,6 +309,7 @@ class AnnouncementService {
     required double volume,
     required Gong gong,
     bool ticking = false,
+    TtsVoice? voice,
   }) {
     return _render(
       0,
@@ -291,6 +317,7 @@ class AnnouncementService {
       volume,
       gong,
       ticking ? _TickFill.sample : _TickFill.none,
+      voice,
     );
   }
 }
