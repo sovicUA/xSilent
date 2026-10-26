@@ -486,6 +486,11 @@ class NotificationService {
 ///
 /// Винесено з класу для юніт-тестів (це логіка, яку реально використовує
 /// планувальник — не плутати з утилітами, що були в `utils/`).
+///
+/// Крок — календарний день (конструктор нормалізує `day + n`), а не
+/// `add(Duration(days: 1))`: та додає рівно 24 год, і через перехід на
+/// зимовий/літній час 09:00 ставала б 08:00/10:00. Плагін далі повторює саме
+/// цей настінний час щотижня, тож зсув закріплювався б.
 @visibleForTesting
 tz.TZDateTime nextInstanceOf(
   tz.TZDateTime now,
@@ -493,12 +498,14 @@ tz.TZDateTime nextInstanceOf(
   int minute,
   int weekday,
 ) {
-  var scheduled =
-      tz.TZDateTime(now.location, now.year, now.month, now.day, hour, minute);
-  while (scheduled.weekday != weekday || !scheduled.isAfter(now)) {
-    scheduled = scheduled.add(const Duration(days: 1));
+  for (var day = 0;; day++) {
+    final scheduled = tz.TZDateTime(
+      now.location, now.year, now.month, now.day + day, hour, minute,
+    );
+    if (scheduled.weekday == weekday && scheduled.isAfter(now)) {
+      return scheduled;
+    }
   }
-  return scheduled;
 }
 
 /// Обробник натискання кнопок на банері сповіщення.

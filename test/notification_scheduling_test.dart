@@ -39,5 +39,22 @@ void main() {
         tz.TZDateTime(kyiv, 2026, 9, 7, 9, 0),
       );
     });
+
+    // Перехід на зимовий час у Києві — 25.10.2026 (04:00 EEST → 03:00 EET).
+    // Додавання по 24 год астрономічного часу зсувало б 09:00 на 08:00.
+    test('перехід на зимовий час — та сама година за місцевим часом', () {
+      final now = tz.TZDateTime(kyiv, 2026, 10, 24, 10, 0); // субота, літній
+      final next = nextInstanceOf(now, 9, 0, DateTime.monday);
+      expect(next.hour, 9);
+      expect(next, tz.TZDateTime(kyiv, 2026, 10, 26, 9, 0));
+    });
+
+    // Перехід на літній час — 29.03.2026 (03:00 EET → 04:00 EEST).
+    test('перехід на літній час — та сама година за місцевим часом', () {
+      final now = tz.TZDateTime(kyiv, 2026, 3, 28, 10, 0); // субота, зимовий
+      final next = nextInstanceOf(now, 9, 0, DateTime.monday);
+      expect(next.hour, 9);
+      expect(next, tz.TZDateTime(kyiv, 2026, 3, 30, 9, 0));
+    });
   });
 }
