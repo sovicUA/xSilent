@@ -103,4 +103,4 @@ The **built-in** reminder fires a 3-part sequence per day: pre-signal (T−`preL
 
 ## Release
 
-Release signing reads `android/key.properties` (gitignored); absent → debug-signed so `flutter run --release` and CI still work. CI: `.github/workflows/ci.yml` (analyze + test + generated-file check + AAB compile on every push/PR); `release.yml` (tag `v*` → signed AAB → Play `internal` track). Bump `version:` in `pubspec.yaml` before tagging.
+Release signing reads `android/key.properties` (gitignored); absent → debug-signed so `flutter run --release` and CI still work. CI: `.github/workflows/ci.yml` (analyze + test + generated-file check + AAB compile on every push/PR); `release.yml` (tag `v*` → signed AAB → Play `internal` track). Before tagging: bump `version:` in `pubspec.yaml` and add that version's section to `store/release-notes.md` — `store/whatsnew.py` extracts it into Play "What's new" and fails the release if it's missing or over 500 chars.

@@ -2,7 +2,8 @@ name: Release
 
 # Тег виду v1.2.3 → підписаний AAB → трек "internal" у Google Play + GitHub Release.
 # Перед тегуванням підняти version у pubspec.yaml (напр. 1.0.1+2) — інакше Play
-# відхилить дублікат versionCode.
+# відхилить дублікат versionCode — і дописати розділ цієї версії в
+# store/release-notes.md (без нього реліз зупиниться: store/whatsnew.py).
 #
 # Потрібні секрети репозиторію:
 #   KEYSTORE_BASE64          — base64 від android/app/upload-keystore.jks
@@ -27,9 +28,9 @@ jobs:
     permissions:
       contents: write # створення GitHub Release
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -57,6 +58,9 @@ jobs:
             echo "storeFile=upload-keystore.jks"
           } > android/key.properties
 
+      - name: Release notes
+        run: python3 store/whatsnew.py "${GITHUB_REF_NAME#v}" build/whatsnew
+
       - run: flutter build appbundle --release
 
       - name: Publish to Play (internal track)
@@ -65,8 +69,9 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: ua.org.sovic.xsilent
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
-          track: internal
+          tracks: internal
           status: completed
+          whatsNewDirectory: build/whatsnew
 
       - name: GitHub Release
         uses: softprops/action-gh-release@v2

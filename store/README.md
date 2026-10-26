@@ -86,4 +86,5 @@ Service account у Google Cloud → доступ у Play Console (Users & permis
 Release manager для конкретного застосунку) → JSON-ключ → секрет
 `PLAY_SERVICE_ACCOUNT_JSON`. Тег `v*` у git запускає
 `.github/workflows/release.yml` → збірка підписаного AAB → завантаження на трек
-`internal`. Перший AAB Google приймає лише через ручне завантаження в Console.
+`internal`. Примітки до випуску — з розділу цієї версії в `release-notes.md`
+(`whatsnew.py`); без нього реліз зупиняється. Перший AAB Google приймає лише через ручне завантаження в Console.
