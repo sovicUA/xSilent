@@ -5,6 +5,24 @@
 
 ---
 
+## 1.2.0 (versionCode 3)
+
+### uk-UA
+
+```
+• Вибір голосу озвучення в налаштуваннях — з можливістю прослухати зразок. Мережеві голоси позначено окремо: їм потрібен інтернет під час збереження нагадування.
+• Виправлено: після переходу на зимовий/літній час нагадування спрацьовували на годину раніше/пізніше. Якщо у вас вже був зсув — просто відкрийте застосунок, розклад виправиться.
+```
+
+### en-US
+
+```
+• Choose the announcement voice in Settings, with a sample preview. Network voices are listed separately — they need internet when a reminder is saved.
+• Fixed: after the switch to winter/summer time, reminders fired an hour early/late. If yours shifted, just open the app and the schedule will be corrected.
+```
+
+---
+
 ## 1.1.0 (versionCode 2)
 
 ### uk-UA
